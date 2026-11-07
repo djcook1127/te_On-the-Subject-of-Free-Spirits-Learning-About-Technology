@@ -37,8 +37,14 @@
 | 5週目 | 要求を確定する（以降は変えない） |
 | 6週目 | 最終報告（11/24）。要求定義書が発表の「①要求定義書パート」の骨格になる |
 
-## 5. 関連ドキュメント
+## 5. 関連リンク・資料
 
-- [要求定義書（md 版）](./requirements-definition.md)
-- 要求定義書の原本：Google ドライブ「要求定義書_3週目_ドラフト.docx」
-- AI 向けの説明：[Agents.md](../Agents.md)
+増えたら、この表に1行ずつ足す。
+
+| 種類 | 名前 | リンク・場所 |
+| --- | --- | --- |
+| ケース | Giftia ケース（本文・Exhibit） | <https://gregarious-sable-36c9eb.netlify.app/#case> |
+| リポジトリ | チームの GitHub | <https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology> |
+| 要求定義書 | 原本（Google ドライブ「要求定義書_3週目_ドラフト.docx」） | <https://docs.google.com/document/d/1jWda90F-n7OE39Hd7kuSvfd8tat3BHXT/edit> |
+| 要求定義書 | md 版 | [requirements-definition.md](./requirements-definition.md) |
+| AI 向けルール | AGENTS.md（Codex・Claude Code 共通） | [AGENTS.md](../AGENTS.md) |
