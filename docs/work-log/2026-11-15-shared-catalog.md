@@ -42,4 +42,4 @@ SQLのREAD ONLY開始・パラメーター化・rollback・close、在庫切れ�
 
 ## GitHub保存
 
-Issue #16を作成済み。PRはmainをbaseにし、未マージのPR #13・#15への依存を明記する。今回の追加差分だけはgit diff 7468299...HEADで確認する。レビュー承認前にマージしない。実際のpush・PR作成結果は完了後に追記する。
+実装コミット0080130を専用ブランチへpushし、[Draft PR #17](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/17)を作成した。対応は[Issue #16](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/16)。PRはmainをbaseとし、未マージのPR #13・#15への依存を本文へ明記した。今回の追加差分だけはgit diff 7468299...HEADで確認する。mainへのマージ・Issueの手動クローズは行っていない。
