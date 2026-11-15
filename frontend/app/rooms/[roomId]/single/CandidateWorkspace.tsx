@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import ResultCard from "../../../ResultCard";
 import { searchGifts, type Gift } from "@/lib/api";
 import { loadCandidateDraft, saveCandidateDraft, type CandidateDraft, type CandidateSlot } from "@/lib/singleApi";
+import { useFarewellFavorites } from "@/lib/useFarewellFavorites";
 import styles from "./candidate.module.css";
 
 export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId: string; initialMemberId: string }) {
@@ -15,7 +16,8 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [reload, setReload] = useState(0);
-  const [method, setMethod] = useState<"product" | "hint">("product");
+  const [method, setMethod] = useState<"product" | "hint" | "favorites">("product");
+  const favorites = useFarewellFavorites();
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [results, setResults] = useState<Gift[] | null>(null);
@@ -130,6 +132,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
           <section aria-label="候補を追加する" className={styles.chooser}>
             <div role="group" aria-label="候補の入力方法" className={styles.tabs}>
               <button aria-pressed={method === "product"} onClick={() => setMethod("product")} disabled={busy}>商品から選ぶ</button>
+              <button aria-pressed={method === "favorites"} onClick={() => setMethod("favorites")} disabled={busy}>お気に入りから選ぶ</button>
               <button aria-pressed={method === "hint"} onClick={() => setMethod("hint")} disabled={busy}>好みをヒントにする</button>
             </div>
             {method === "product" ? <>
@@ -153,6 +156,20 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
                   </article>;
                 })}</div>
               </>}
+            </> : method === "favorites" ? <>
+              <h2 className={styles.favoritesTitle}>送別用のお気に入りから</h2>
+              <p className={styles.muted}>気になっていた商品を、今回のルームの候補に選べます。選んだ後もお気に入りには残ります。</p>
+              <p className={styles.muted}>このブラウザーのお気に入りです。架空参加者の切替とは連動しません。価格などは保存時の情報です。</p>
+              {favorites.error && <p role="alert" className={styles.error}>{favorites.error}</p>}
+              {!favorites.error && favorites.gifts.length === 0 && <div className={styles.empty}>まだお気に入りはありません。<br />普段の検索で「送別用のお気に入りに保存」を押してください。</div>}
+              <div className={styles.results}>{favorites.gifts.map((gift, index) => {
+                const selected = slots.some(slot => slot.kind === "product" && slot.productId === gift.id);
+                return <article key={gift.id} className={`${styles.result} ${selected ? styles.selected : ""}`}>
+                  <ResultCard gift={gift} rank={index + 1} />
+                  <button disabled={busy || selected || slots.length >= 3} onClick={() => addGift(gift)} aria-label={`${gift.name}をお気に入りからルームの候補に追加`}>{selected ? "ルームに追加済み" : "＋ ルームの候補に追加"}</button>
+                </article>;
+              })}</div>
+              <p className={styles.muted}>追加後は、右の「入力内容を保存する」でルームの下書きを保存してください。</p>
             </> : <form className={styles.hintForm} onSubmit={addHint}>
               <span className={styles.hintIcon} aria-hidden="true">✧</span>
               <h2>商品が決まらなくても、大丈夫。</h2>

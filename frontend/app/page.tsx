@@ -3,7 +3,10 @@
 "use client"; // ← ブラウザで動く合図。useState や onClick を使う画面に必要
 
 import { useState } from "react";
+import Link from "next/link";
 import ResultCard from "./ResultCard";
+import FarewellFavoriteButton from "./components/FarewellFavoriteButton";
+import favoriteStyles from "./components/farewellFavorites.module.css";
 import { searchGifts, type Gift } from "@/lib/api";
 
 export default function Home() {
@@ -42,6 +45,10 @@ export default function Home() {
   return (
     <main className="page">
       <header className="header"><h1>Giftia</h1></header>
+      <div className={favoriteStyles.bar}>
+        <Link href="/favorites/farewell" className={favoriteStyles.link}>♡ 送別用のお気に入りを見る</Link>
+        <span className={favoriteStyles.note}>このブラウザーに保存し、ルームで候補として選べます。</span>
+      </div>
 
       {/* タブ：state(mode)＋条件で出し分ける */}
       <nav className="modes">
@@ -81,7 +88,10 @@ export default function Home() {
         <section>
           <p className="summary">{results.length === 0 ? "条件に合う商品がありません" : `上位 ${results.length} 件`}</p>
           <div className="grid">
-            {results.map((g, i) => <ResultCard key={g.id} gift={g} rank={i + 1} />)}
+            {results.map((g, i) => <article key={g.id}>
+              <ResultCard gift={g} rank={i + 1} />
+              <FarewellFavoriteButton gift={g} />
+            </article>)}
           </div>
         </section>
       )}
