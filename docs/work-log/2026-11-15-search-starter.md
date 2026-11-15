@@ -42,3 +42,16 @@ APIは班の既存開発DBを検索した。接続情報は既存のローカル
 PR準備時にgit fetch originを実施し、開始コミットと最新origin/mainの差が0件であることを確認した。資格情報・依存パッケージ本体・ビルド生成物は追跡対象から除外。レビューとマージは未実施。コミットとPRの最新状態はIssue #8に関連するPRを参照。
 
 確認時はAPIと画面を127.0.0.1の8000・3000で起動。画面のURLは http://localhost:3000 。再起動方法はリポジトリ直下のREADMEを参照。
+
+## コミットとPR
+
+2026年11月15日、ユーザーの指示に基づき以下を実施した。
+
+- ブランチを規定名fix/issue-8-search-starterへ変更し、mainには直接コミットしていない。
+- [e5ace8a](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/commit/e5ace8a54dfa2742a169106889f390bb4fce9d00)：既存検索の修復と起動構成。
+- [fc4dce6](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/commit/fc4dce6cb3b6414e5bbc1c10a264f7e463ef0ad9)：起動手順・作業記録・確認画像。
+- push前に再度git fetchを行い、origin/mainに未取り込みの変更がないことを確認して作業ブランチをpush。
+- [PR #9](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/9)をmain宛てに作成。本文に要求・要件との対応、証拠、Closes #8を記載。
+- gh pr viewでOPEN・非Draft・MERGEABLE・REVIEW_REQUIREDを確認。GitHub上のチェック結果は0件で、CI合格とは扱わない。
+
+レビュー・マージ・Issueのクローズは未実施。別メンバー1人以上のApproveを確認してからマージする。PR番号と進捗の追記は文書用の追加コミットとして同じブランチへ保存する。

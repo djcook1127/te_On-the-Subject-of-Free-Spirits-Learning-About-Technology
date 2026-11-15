@@ -21,7 +21,7 @@ Issueが作成できない場合は、理由と起票用本文を残す。この
 
 | 日付 | 作業 | 状態 |
 |---|---|---|
-| 2026-11-15 | [既存検索の穴埋め・起動ファイルの復元](2026-11-15-search-starter.md) | [Issue #8](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/8)、実装・検証済み、レビュー未実施 |
+| 2026-11-15 | [既存検索の穴埋め・起動ファイルの復元](2026-11-15-search-starter.md) | [Issue #8](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/8)・[PR #9](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/9)、コミット・push済み、レビュー待ち |
 | 2026-11-15 | [GitHub Issue連携の403を調査しCLIで接続](2026-11-15-github-connection.md) | CLI認証・WRITE権限・Issue作成と読み戻しを確認済み。アプリ側の権限設定は未変更 |
 
 別管理の「step3最新情報」のWord・開発ルールは、この作業記録と自動で同期しない。参照した版を必要に応じて記録する。
