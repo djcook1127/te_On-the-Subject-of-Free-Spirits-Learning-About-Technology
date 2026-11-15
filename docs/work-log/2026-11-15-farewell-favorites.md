@@ -14,7 +14,7 @@
 
 | 確認 | 結果 |
 |---|---|
-| `node --test tests/farewellFavorites.test.mjs`（frontend内） | 8件成功。再取得、重複更新、5件保存、解除の独立性、先行保存の保持、不正データ上書き拒否、容量不足・読み取り拒否、不正商品の拒否 |
+| `node --test tests/farewellFavorites.test.mjs`（frontend内、Node v24.22.0で実行） | 8件成功。再取得、重複更新、5件保存、解除の独立性、先行保存の保持、不正データ上書き拒否、容量不足・読み取り拒否、不正商品の拒否。Node標準のTypeScript実行を利用するため、旧バージョンでの実行可否は未確認 |
 | `npm run lint` | 成功 |
 | `npm run build` | TypeScript、静的ページ生成とも成功。開発サーバーを止めてから、既知の権限制限を避ける許可済み環境で実行 |
 | 普段の検索→保存→一覧 | 架空商品5件の検索から4件を保存し、一覧の4件表示を確認 |
@@ -41,4 +41,6 @@
 
 ## GitHubへの保存
 
-Issue #14を起票済み。PRのbaseはmainとし、未マージPR #13への依存と、追加差分の比較方法を本文へ記す。レビュー承認前にマージしない。GitHubの反映結果は実際のpush・PR作成後に追記する。
+実装コミット`c4a0338`を専用ブランチへpush済み。[Draft PR #15](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/15)を作成した。対応は[Issue #14](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/14)。PRのbaseはmainで、未マージPR #13への依存と、追加差分の比較方法を本文へ記載した。mainへのマージ・Issueの手動クローズは実施していない。
+
+Next.jsが生成する未追跡のfrontend/AGENTS.mdは既存状態のまま。この追加PRへは含めていない。要求・要件のWord原本も変更していない。
