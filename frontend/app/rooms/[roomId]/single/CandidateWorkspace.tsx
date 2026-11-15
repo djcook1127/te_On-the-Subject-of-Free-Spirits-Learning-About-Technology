@@ -105,7 +105,11 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
   }
 
   return <div className={styles.workspace}>
-    <div className={styles.demo}>ローカル検証用：架空の商品・参加者を使っています。今回は入力の保存までを確認します。</div>
+    <div className={styles.demo}>{draft?.catalogSource === "shared"
+      ? "共通DBの商品を読み取っています。ルーム・参加者は検証用、候補はこのPCに保存します。"
+      : draft?.catalogSource === "demo"
+        ? "ローカル検証用：架空の商品・参加者を使っています。今回は入力の保存までを確認します。"
+        : "ローカル検証用：商品情報の取得元を確認しています。"}</div>
     <header className={styles.header}>
       <div className={styles.brand}>Giftia <span>みんなで選ぶ、贈りもの。</span></div>
       <Link href="/" onClick={event => { if (dirty && !window.confirm("保存していない編集内容があります。検索画面へ移動しますか？")) event.preventDefault(); }}>既存の検索画面へ</Link>
@@ -187,6 +191,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
               <div className={styles.slotTop}><span>{String(index + 1).padStart(2, "0")} · {slot.kind === "product" ? "商品" : "ヒント"}</span><button aria-label={`候補${index + 1}を削除`} disabled={busy} onClick={() => changeSlots(slots.filter((_, i) => i !== index))}>削除</button></div>
               {slot.kind === "product" ? <>
                 <h3>{slot.gift.name}</h3><p className={styles.slotPrice}>{slot.gift.price.toLocaleString()}円</p>
+                {slot.available === false && <p role="alert">現在の商品一覧では購入可能と確認できません。保存済み候補は残しています。削除または入れ替えてください。</p>}
                 <label>選んだ理由（任意）<textarea aria-label={`候補${index + 1}の理由`} maxLength={100} rows={2} value={slot.reason} disabled={busy} onChange={event => changeSlots(slots.map((s, i) => i === index ? { ...slot, reason: event.target.value } : s))} placeholder="こんなところがよさそう" /></label>
               </> : <label>こんなのが好きそう<textarea aria-label={`候補${index + 1}のヒント`} maxLength={100} rows={3} value={slot.text} disabled={busy} onChange={event => changeSlots(slots.map((s, i) => i === index ? { ...slot, text: event.target.value } : s))} /></label>}
             </li>)}</ol>
