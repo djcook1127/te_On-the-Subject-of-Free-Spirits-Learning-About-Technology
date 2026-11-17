@@ -10,15 +10,17 @@ export type CandidateDraft = {
   member: DemoMember;
   demoMembers: DemoMember[];
   catalogSource?: "demo" | "shared";
+  localParticipation?: boolean;
   version: number;
   slots: CandidateSlot[];
 };
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-async function request(roomId: string, memberId: string, body?: { version: number; slots: CandidateSlot[] }): Promise<CandidateDraft> {
+async function request(roomId: string, memberId: string, body?: { version: number; slots: CandidateSlot[] }, localParticipation = false): Promise<CandidateDraft> {
   const res = await fetch(`${API}/api/rooms/${encodeURIComponent(roomId)}/candidate-draft`, {
     method: body ? "PUT" : "GET",
-    headers: { "X-Demo-Member": memberId, ...(body ? { "Content-Type": "application/json" } : {}) },
+    headers: { ...(!localParticipation ? { "X-Demo-Member": memberId } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
+    ...(localParticipation ? { credentials: "include" as const } : {}),
     cache: "no-store",
     ...(body ? { body: JSON.stringify({
       version: body.version,
@@ -34,5 +36,5 @@ async function request(roomId: string, memberId: string, body?: { version: numbe
   return res.json();
 }
 
-export const loadCandidateDraft = (roomId: string, memberId: string) => request(roomId, memberId);
-export const saveCandidateDraft = (roomId: string, memberId: string, version: number, slots: CandidateSlot[]) => request(roomId, memberId, { version, slots });
+export const loadCandidateDraft = (roomId: string, memberId: string, localParticipation = false) => request(roomId, memberId, undefined, localParticipation);
+export const saveCandidateDraft = (roomId: string, memberId: string, version: number, slots: CandidateSlot[], localParticipation = false) => request(roomId, memberId, { version, slots }, localParticipation);

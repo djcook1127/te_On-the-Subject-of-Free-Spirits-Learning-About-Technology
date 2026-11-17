@@ -8,7 +8,7 @@ import { loadCandidateDraft, saveCandidateDraft, type CandidateDraft, type Candi
 import { useFarewellFavorites } from "@/lib/useFarewellFavorites";
 import styles from "./candidate.module.css";
 
-export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId: string; initialMemberId: string }) {
+export default function CandidateWorkspace({ roomId, initialMemberId, localParticipation = false }: { roomId: string; initialMemberId: string; localParticipation?: boolean }) {
   const [memberId, setMemberId] = useState(initialMemberId);
   const [draft, setDraft] = useState<CandidateDraft | null>(null);
   const [slots, setSlots] = useState<CandidateSlot[]>([]);
@@ -32,16 +32,16 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
 
   useEffect(() => {
     let active = true;
-    loadCandidateDraft(roomId, memberId).then(value => {
+    loadCandidateDraft(roomId, memberId, localParticipation).then(value => {
       if (!active) return;
       setDraft(value); setSlots(value.slots); setDirty(false); setLoading(false);
     }).catch(error => {
       if (!active) return;
-      setLoadError(`APIにつながりません：${error.message}`); setLoading(false);
+      setLoadError(`入力を読み込めません：${error.message}`); setLoading(false);
     });
     // 参加者切替前に開始した通信で、別の人の画面を上書きしない。
     return () => { active = false; };
-  }, [roomId, memberId, reload]);
+  }, [roomId, memberId, reload, localParticipation]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -95,7 +95,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
     if (!draft || busy || invalidHint || !dirty) return;
     setSaving(true); setSaveError(""); setNotice("");
     try {
-      const value = await saveCandidateDraft(roomId, memberId, draft.version, slots);
+      const value = await saveCandidateDraft(roomId, memberId, draft.version, slots, localParticipation);
       setDraft(value); setSlots(value.slots); setDirty(false);
       setNotice("あなたの入力を保存しました。正式な提出はまだ行っていません。");
     } catch (error) {
@@ -105,7 +105,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
   }
 
   return <div className={styles.workspace}>
-    <div className={styles.demo}>{draft?.catalogSource === "shared"
+    <div className={styles.demo}>{localParticipation ? "ローカル検証用：名前で参加した本人の入力です。商品は架空で、このPC内だけに保存します。" : draft?.catalogSource === "shared"
       ? "共通DBの商品を読み取っています。ルーム・参加者は検証用、候補はこのPCに保存します。"
       : draft?.catalogSource === "demo"
         ? "ローカル検証用：架空の商品・参加者を使っています。今回は入力の保存までを確認します。"
@@ -117,11 +117,11 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
     <main className={styles.main}>
       <div className={styles.roomBar}>
         <span>{draft?.room.title ?? "送別ギフトの候補入力"}</span>
-        <label>確認する架空参加者
+        {localParticipation ? <p>参加者：{draft?.member.name ?? "確認中…"} <Link href={`/rooms/${encodeURIComponent(roomId)}`} onClick={event => { if (dirty && !window.confirm("保存していない編集内容があります。ルームへ戻りますか？")) event.preventDefault(); }}>ルームに戻る</Link></p> : <label>確認する架空参加者
           <select aria-label="確認する架空参加者" disabled={busy || !draft} value={memberId} onChange={event => selectMember(event.target.value)}>
             {(draft?.demoMembers ?? [{ id: memberId, name: memberId }]).map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
-        </label>
+        </label>}
       </div>
       <section className={styles.intro}>
         <p className={styles.eyebrow}>1つに決める · 候補を持ち寄る</p>
@@ -129,7 +129,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
         <p>自分で商品を選んでも、「こんなのが好きそう」とヒントを残しても。<br />あなたのアイデアを、最大3つまでストックできます。</p>
       </section>
       {loading && <p role="status" className={styles.status}>あなたの入力を読み込んでいます…</p>}
-      {loadError && <div role="alert" className={styles.error}>{loadError}<button onClick={reread} disabled={busy}>再試行</button></div>}
+      {loadError && <div role="alert" className={styles.error}>{loadError}<button onClick={reread} disabled={busy}>再試行</button>{localParticipation && <Link href={`/rooms/${encodeURIComponent(roomId)}`}>ルームで参加情報を確認する</Link>}</div>}
       {draft && !loading && !loadError && <>
         <div className={styles.budget}>みんなの予算 <strong>{draft.room.budgetTotal.toLocaleString()}円</strong><span>候補を考えるときの目安です。</span></div>
         <div className={styles.columns}>

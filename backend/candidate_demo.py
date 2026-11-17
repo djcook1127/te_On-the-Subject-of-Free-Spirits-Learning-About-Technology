@@ -170,16 +170,8 @@ def get_draft(room_id: str, member_id: str = Header(alias="X-Demo-Member")):
 @app.put("/api/rooms/{room_id}/candidate-draft")
 def save_draft(room_id: str, body: DraftInput, member_id: str = Header(alias="X-Demo-Member")):
     room, member = participant(room_id, member_id)
-    slots = [slot.model_dump() for slot in body.slots]
-    ids = [s["productId"] for s in slots if s["kind"] == "product"]
-    if len(ids) != len(set(ids)):
-        raise HTTPException(400, "同じ商品は1つの枠にまとめてください")
     catalog = get_catalog()
-    products = catalog.get_many(ids)
-    if any(pid not in products or not products[pid]["available"] for pid in ids):
-        raise HTTPException(400, "候補の商品が見つからないか在庫切れです。該当の商品を削除または入れ替えてください")
-    # 商品情報はサーバー側で取得し直す。将来取り扱い終了となった場合の表示用にも残す。
-    slots = [dict(slot, gift=products[slot["productId"]]["gift"]) if slot["kind"] == "product" else slot for slot in slots]
+    slots, products = prepare_slots(body, catalog)
     with connection() as con:
         # 同一参加者の複数タブから、古い下書きで上書きされることを防ぐ。
         con.execute("BEGIN IMMEDIATE")
@@ -191,3 +183,17 @@ def save_draft(room_id: str, body: DraftInput, member_id: str = Header(alias="X-
         con.execute("INSERT INTO drafts(room_id,member_id,version,slots) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET version=excluded.version,slots=excluded.slots",
                     (room_id, member_id, version, json.dumps(slots, ensure_ascii=False)))
         return response(room, member, {"version": version, "slots": json.dumps(slots)}, catalog, products)
+
+
+def prepare_slots(body: DraftInput, catalog):
+    """商品・手掛かりの既存入力規則をローカル参加版とも共有する。"""
+    slots = [slot.model_dump() for slot in body.slots]
+    ids = [s["productId"] for s in slots if s["kind"] == "product"]
+    if len(ids) != len(set(ids)):
+        raise HTTPException(400, "同じ商品は1つの枠にまとめてください")
+    products = catalog.get_many(ids)
+    if any(pid not in products or not products[pid]["available"] for pid in ids):
+        raise HTTPException(400, "候補の商品が見つからないか在庫切れです。該当の商品を削除または入れ替えてください")
+    # 商品情報はサーバー側で取得し直す。将来取り扱い終了となった場合の表示用にも残す。
+    slots = [dict(slot, gift=products[slot["productId"]]["gift"]) if slot["kind"] == "product" else slot for slot in slots]
+    return slots, products

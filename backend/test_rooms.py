@@ -88,7 +88,7 @@ class RoomTests(unittest.TestCase):
         self.connection_patch = patch("database.get_connection", side_effect=lambda: TestConnection(self.filename))
         self.connection_patch.start()
         self.addCleanup(self.connection_patch.stop)
-        self.today_patch = patch("rooms.today_in_japan", return_value=date(2026, 11, 15))
+        self.today_patch = patch("room_contract.today_in_japan", return_value=date(2026, 11, 15))
         self.today_patch.start()
         self.addCleanup(self.today_patch.stop)
         self.client = TestClient(main.app)

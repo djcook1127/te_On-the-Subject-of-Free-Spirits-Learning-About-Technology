@@ -6,6 +6,7 @@ export const holidays: Record<string, string> = calendar.holidays;
 export const supportedYears = calendar.supported_years;
 export const calendarSource = calendar.source;
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const localRoomsEnabled = process.env.NEXT_PUBLIC_LOCAL_ROOMS === "1";
 
 // 作成するときに、画面からAPIへ送る情報。
 export type RoomInput = {
@@ -27,6 +28,7 @@ export type Room = {
   organizer_nickname: string;
   price_per_person: number;
   room_path: string;
+  local_preview?: boolean;
 };
 
 export function japanToday(): string {
@@ -125,6 +127,7 @@ export async function createRoom(input: RoomInput): Promise<Room> {
     // ② APIへ作成を依頼し、レスポンスが届くまで待つ。
     const response = await fetch(url, {
       method: "POST",
+      credentials: localRoomsEnabled ? "include" : "omit",
       headers: { "Content-Type": "application/json" },
       body: requestBody,
     });

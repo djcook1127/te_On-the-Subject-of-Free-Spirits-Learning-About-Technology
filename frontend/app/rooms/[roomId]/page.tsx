@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { displayDate, getRoom, type Room } from "@/lib/rooms";
 import RoomShell from "../RoomShell";
+import RoomParticipation from "../RoomParticipation";
 
 export default function RoomPage() {
   // ① URLの番号と、画面が現在覚えている情報を用意する。
@@ -120,6 +121,8 @@ export default function RoomPage() {
           <p>予算と受け取り期限を保存しました。このURLから、いつでも確認できます。</p>
         </div>
       </section>
+
+      {room.local_preview && <RoomParticipation key={roomId} roomId={roomId} />}
 
       <div className="room-bottom-grid">
         <section className="room-panel room-url-panel">
