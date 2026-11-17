@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import ResultCard from "../../../ResultCard";
 import { searchGifts, type Gift } from "@/lib/api";
 import { loadCandidateDraft, saveCandidateDraft, type CandidateDraft, type CandidateSlot } from "@/lib/singleApi";
+import { useFarewellFavorites } from "@/lib/useFarewellFavorites";
 import styles from "./candidate.module.css";
 
-export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId: string; initialMemberId: string }) {
+export default function CandidateWorkspace({ roomId, initialMemberId, localParticipation = false }: { roomId: string; initialMemberId: string; localParticipation?: boolean }) {
   const [memberId, setMemberId] = useState(initialMemberId);
   const [draft, setDraft] = useState<CandidateDraft | null>(null);
   const [slots, setSlots] = useState<CandidateSlot[]>([]);
@@ -15,7 +16,8 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [reload, setReload] = useState(0);
-  const [method, setMethod] = useState<"product" | "hint">("product");
+  const [method, setMethod] = useState<"product" | "hint" | "favorites">("product");
+  const favorites = useFarewellFavorites();
   const [keyword, setKeyword] = useState("");
   const [category, setCategory] = useState("");
   const [results, setResults] = useState<Gift[] | null>(null);
@@ -30,16 +32,16 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
 
   useEffect(() => {
     let active = true;
-    loadCandidateDraft(roomId, memberId).then(value => {
+    loadCandidateDraft(roomId, memberId, localParticipation).then(value => {
       if (!active) return;
       setDraft(value); setSlots(value.slots); setDirty(false); setLoading(false);
     }).catch(error => {
       if (!active) return;
-      setLoadError(`APIにつながりません：${error.message}`); setLoading(false);
+      setLoadError(`入力を読み込めません：${error.message}`); setLoading(false);
     });
     // 参加者切替前に開始した通信で、別の人の画面を上書きしない。
     return () => { active = false; };
-  }, [roomId, memberId, reload]);
+  }, [roomId, memberId, reload, localParticipation]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -93,7 +95,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
     if (!draft || busy || invalidHint || !dirty) return;
     setSaving(true); setSaveError(""); setNotice("");
     try {
-      const value = await saveCandidateDraft(roomId, memberId, draft.version, slots);
+      const value = await saveCandidateDraft(roomId, memberId, draft.version, slots, localParticipation);
       setDraft(value); setSlots(value.slots); setDirty(false);
       setNotice("あなたの入力を保存しました。正式な提出はまだ行っていません。");
     } catch (error) {
@@ -103,7 +105,11 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
   }
 
   return <div className={styles.workspace}>
-    <div className={styles.demo}>ローカル検証用：架空の商品・参加者を使っています。今回は入力の保存までを確認します。</div>
+    <div className={styles.demo}>{localParticipation ? "ローカル検証用：名前で参加した本人の入力です。商品は架空で、このPC内だけに保存します。" : draft?.catalogSource === "shared"
+      ? "共通DBの商品を読み取っています。ルーム・参加者は検証用、候補はこのPCに保存します。"
+      : draft?.catalogSource === "demo"
+        ? "ローカル検証用：架空の商品・参加者を使っています。今回は入力の保存までを確認します。"
+        : "ローカル検証用：商品情報の取得元を確認しています。"}</div>
     <header className={styles.header}>
       <div className={styles.brand}>Giftia <span>みんなで選ぶ、贈りもの。</span></div>
       <Link href="/" onClick={event => { if (dirty && !window.confirm("保存していない編集内容があります。検索画面へ移動しますか？")) event.preventDefault(); }}>既存の検索画面へ</Link>
@@ -111,11 +117,11 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
     <main className={styles.main}>
       <div className={styles.roomBar}>
         <span>{draft?.room.title ?? "送別ギフトの候補入力"}</span>
-        <label>確認する架空参加者
+        {localParticipation ? <p>参加者：{draft?.member.name ?? "確認中…"} <Link href={`/rooms/${encodeURIComponent(roomId)}`} onClick={event => { if (dirty && !window.confirm("保存していない編集内容があります。ルームへ戻りますか？")) event.preventDefault(); }}>ルームに戻る</Link></p> : <label>確認する架空参加者
           <select aria-label="確認する架空参加者" disabled={busy || !draft} value={memberId} onChange={event => selectMember(event.target.value)}>
             {(draft?.demoMembers ?? [{ id: memberId, name: memberId }]).map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
-        </label>
+        </label>}
       </div>
       <section className={styles.intro}>
         <p className={styles.eyebrow}>1つに決める · 候補を持ち寄る</p>
@@ -123,13 +129,14 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
         <p>自分で商品を選んでも、「こんなのが好きそう」とヒントを残しても。<br />あなたのアイデアを、最大3つまでストックできます。</p>
       </section>
       {loading && <p role="status" className={styles.status}>あなたの入力を読み込んでいます…</p>}
-      {loadError && <div role="alert" className={styles.error}>{loadError}<button onClick={reread} disabled={busy}>再試行</button></div>}
+      {loadError && <div role="alert" className={styles.error}>{loadError}<button onClick={reread} disabled={busy}>再試行</button>{localParticipation && <Link href={`/rooms/${encodeURIComponent(roomId)}`}>ルームで参加情報を確認する</Link>}</div>}
       {draft && !loading && !loadError && <>
         <div className={styles.budget}>みんなの予算 <strong>{draft.room.budgetTotal.toLocaleString()}円</strong><span>候補を考えるときの目安です。</span></div>
         <div className={styles.columns}>
           <section aria-label="候補を追加する" className={styles.chooser}>
             <div role="group" aria-label="候補の入力方法" className={styles.tabs}>
               <button aria-pressed={method === "product"} onClick={() => setMethod("product")} disabled={busy}>商品から選ぶ</button>
+              <button aria-pressed={method === "favorites"} onClick={() => setMethod("favorites")} disabled={busy}>お気に入りから選ぶ</button>
               <button aria-pressed={method === "hint"} onClick={() => setMethod("hint")} disabled={busy}>好みをヒントにする</button>
             </div>
             {method === "product" ? <>
@@ -153,6 +160,20 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
                   </article>;
                 })}</div>
               </>}
+            </> : method === "favorites" ? <>
+              <h2 className={styles.favoritesTitle}>送別用のお気に入りから</h2>
+              <p className={styles.muted}>気になっていた商品を、今回のルームの候補に選べます。選んだ後もお気に入りには残ります。</p>
+              <p className={styles.muted}>このブラウザーのお気に入りです。架空参加者の切替とは連動しません。価格などは保存時の情報です。</p>
+              {favorites.error && <p role="alert" className={styles.error}>{favorites.error}</p>}
+              {!favorites.error && favorites.gifts.length === 0 && <div className={styles.empty}>まだお気に入りはありません。<br />普段の検索で「送別用のお気に入りに保存」を押してください。</div>}
+              <div className={styles.results}>{favorites.gifts.map((gift, index) => {
+                const selected = slots.some(slot => slot.kind === "product" && slot.productId === gift.id);
+                return <article key={gift.id} className={`${styles.result} ${selected ? styles.selected : ""}`}>
+                  <ResultCard gift={gift} rank={index + 1} />
+                  <button disabled={busy || selected || slots.length >= 3} onClick={() => addGift(gift)} aria-label={`${gift.name}をお気に入りからルームの候補に追加`}>{selected ? "ルームに追加済み" : "＋ ルームの候補に追加"}</button>
+                </article>;
+              })}</div>
+              <p className={styles.muted}>追加後は、右の「入力内容を保存する」でルームの下書きを保存してください。</p>
             </> : <form className={styles.hintForm} onSubmit={addHint}>
               <span className={styles.hintIcon} aria-hidden="true">✧</span>
               <h2>商品が決まらなくても、大丈夫。</h2>
@@ -170,6 +191,7 @@ export default function CandidateWorkspace({ roomId, initialMemberId }: { roomId
               <div className={styles.slotTop}><span>{String(index + 1).padStart(2, "0")} · {slot.kind === "product" ? "商品" : "ヒント"}</span><button aria-label={`候補${index + 1}を削除`} disabled={busy} onClick={() => changeSlots(slots.filter((_, i) => i !== index))}>削除</button></div>
               {slot.kind === "product" ? <>
                 <h3>{slot.gift.name}</h3><p className={styles.slotPrice}>{slot.gift.price.toLocaleString()}円</p>
+                {slot.available === false && <p role="alert">現在の商品一覧では購入可能と確認できません。保存済み候補は残しています。削除または入れ替えてください。</p>}
                 <label>選んだ理由（任意）<textarea aria-label={`候補${index + 1}の理由`} maxLength={100} rows={2} value={slot.reason} disabled={busy} onChange={event => changeSlots(slots.map((s, i) => i === index ? { ...slot, reason: event.target.value } : s))} placeholder="こんなところがよさそう" /></label>
               </> : <label>こんなのが好きそう<textarea aria-label={`候補${index + 1}のヒント`} maxLength={100} rows={3} value={slot.text} disabled={busy} onChange={event => changeSlots(slots.map((s, i) => i === index ? { ...slot, text: event.target.value } : s))} /></label>}
             </li>)}</ol>

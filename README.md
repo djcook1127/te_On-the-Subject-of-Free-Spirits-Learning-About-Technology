@@ -1,6 +1,6 @@
 # Giftia 商品検索の起動
 
-Next.js の画面から FastAPI を呼び、班の開発用 MySQL の商品を検索します。ルーム・投票などの新機能は今回の修復に含みません。チームの作業ルールは [AGENTS.md](AGENTS.md) を参照してください。
+Next.js の画面から FastAPI を呼び、班の開発用 MySQL の商品を検索します。ルーム作成・取得、お気に入り、個人候補入力のコードを統合しました。[ローカル参加版](docs/local-participation.md)では、名前での参加から本人の商品候補・手掛かり保存まで、架空商品とSQLiteだけで試せます。MySQLの実ルームと個人候補入力は未接続です。保存先・起動方法・未決事項は[統合の説明](docs/room-integration.md)、チームの作業ルールは [AGENTS.md](AGENTS.md) を参照してください。
 
 作業内容・動作確認・未完了事項は [開発の作業記録](docs/work-log/README.md) に残します。ローカル保存とGitHubへの反映状況を区別して記録します。
 

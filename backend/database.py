@@ -9,6 +9,7 @@
 #   DB_SSL_CA   = 配布された SSL証明書のパス（任意。入れると Workbench の「Verify CA」と同じく相手を確かめる）
 
 import os
+from contextlib import contextmanager
 
 import pymysql
 from dotenv import load_dotenv
@@ -48,4 +49,32 @@ def fetch_all(query: str, params: tuple = ()) -> list[dict]:
             cur.execute(query, params)
             return cur.fetchall()
     finally:
+        conn.close()
+
+
+@contextmanager
+def transaction():
+    """複数の書き込みを「全部成功」か「全部取り消し」にまとめる。
+    例：ルームを作る（ルーム追加 → 幹事をメンバーに追加 → ルームに幹事を記録）
+        with transaction() as cur:
+            cur.execute("INSERT ...", (...))
+            room_id = cur.lastrowid
+            ...
+    with の中で例外が起きたら、それまでの書き込みはすべて取り消される"""
+    # ① 複数の書き込みで共通して使う接続を作る。
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # ② いったん呼び出し元へ移り、withの中のSQLを実行してもらう。
+            yield cur
+
+        # ③ すべて成功して戻ってきたら、まとめて保存を確定する。
+        conn.commit()
+    except Exception:
+        # 途中で失敗した場合は、ここまでの書き込みをまとめて取り消す。
+        conn.rollback()
+        # 呼び出し元にも失敗を伝える。
+        raise
+    finally:
+        # 成功・失敗のどちらでも、接続を閉じる。
         conn.close()

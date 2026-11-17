@@ -6,5 +6,6 @@ export default async function SinglePage({ params, searchParams }: {
 }) {
   const { roomId } = await params;
   const { member } = await searchParams;
-  return <CandidateWorkspace key={`${roomId}-${member}`} roomId={roomId} initialMemberId={member ?? "demo-yutti"} />;
+  const localParticipation = process.env.NEXT_PUBLIC_LOCAL_ROOMS === "1" && /^\d+$/.test(roomId);
+  return <CandidateWorkspace key={`${roomId}-${member}`} roomId={roomId} initialMemberId={member ?? "demo-yutti"} localParticipation={localParticipation} />;
 }
