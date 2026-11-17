@@ -1,0 +1,81 @@
+{
+  "pages": 23,
+  "titles": [
+    "Giftia コード解説・追記版",
+    "変更したファイルの分類",
+    "ライブラリ・技術の選定理由",
+    "なぜ、この処理の順番にしたか",
+    "A-1｜main.pyに追加したコード",
+    "A-2｜database.pyに書き込み関数を追加",
+    "A-3｜database.pyにtransactionを追加",
+    "A-4｜既存画面と設定へ追加したコード",
+    "B-1｜rooms.py：ルーム用APIを作る理由",
+    "B-2｜rooms.py：作成処理を順に読む",
+    "B-3｜rooms.py：取得と返却の処理",
+    "B-4｜lib/rooms.ts：通信を分ける理由",
+    "B-5｜lib/rooms.ts：日付と失敗の扱い",
+    "B-6｜作成画面を新しく作る理由",
+    "B-7｜作成画面のsubmitを順に読む",
+    "B-8｜表示画面を新しく作る理由",
+    "B-9｜DateCalendarを分けた理由",
+    "B-10｜共通の枠と見た目を作る理由",
+    "B-11｜schema.sqlを作った理由",
+    "B-12｜共通の祝日データを作った理由",
+    "B-13｜test_rooms.pyを作った理由",
+    "復習｜コードを読む順番と選定理由",
+    "付録｜起動手順・公式資料・参照記録"
+  ],
+  "parts": [
+    "はじめに",
+    "はじめに",
+    "設計の理由",
+    "設計の理由",
+    "A｜既存プログラムの改修",
+    "A｜既存プログラムの改修",
+    "A｜既存プログラムの改修",
+    "A｜既存プログラムの改修",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "B｜新規ファイルの作成",
+    "付録",
+    "付録"
+  ],
+  "source_ranges": [
+    {
+      "file": "backend/database.py",
+      "first_line": 61,
+      "last_line": 77
+    },
+    {
+      "file": "backend/database.py",
+      "first_line": 80,
+      "last_line": 92
+    },
+    {
+      "file": "backend/database.py",
+      "first_line": 95,
+      "last_line": 120
+    },
+    {
+      "file": "backend/rooms.py",
+      "first_line": 49,
+      "last_line": 57
+    },
+    {
+      "file": "backend/rooms.py",
+      "first_line": 95,
+      "last_line": 112
+    }
+  ],
+  "classification_check": "PASS"
+}

@@ -1,0 +1,13 @@
+backend/.env.example
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+out/
+.venv/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+next-env.d.ts
+.local/

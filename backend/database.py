@@ -1,4 +1,4 @@
-# database.py — 班のDB（Azure Database for MySQL）につなぐ（穴なし。置いて、読む）
+# DBに接続し、データの取得・登録・更新・削除と、保存の確定・取り消しを行うプログラムです。
 #
 # 接続情報は .env に置く（Workbench に入れたものと同じ5つ）。コードに書かない。GitHub に上げない。
 #   DB_HOST     = ホスト名（xxx.mysql.database.azure.com）
@@ -9,6 +9,7 @@
 #   DB_SSL_CA   = 配布された SSL証明書のパス（任意。入れると Workbench の「Verify CA」と同じく相手を確かめる）
 
 import os
+from contextlib import contextmanager
 
 import pymysql
 from dotenv import load_dotenv
@@ -46,6 +47,74 @@ def fetch_all(query: str, params: tuple = ()) -> list[dict]:
     try:
         with conn.cursor() as cur:
             cur.execute(query, params)
-            return cur.fetchall()
+            rows = cur.fetchall()
+            return rows
     finally:
+        conn.close()
+
+
+# ── ここから追加（3週目〜）：書き込み用 ─────────────────────────
+# pymysql は、書き込んだだけでは DB に反映されない。commit()（確定）して初めて保存される。
+# 途中で失敗したら rollback()（取り消し）して、書きかけの状態を残さない。
+
+
+def insert(query: str, params: tuple = ()) -> int:
+    """INSERT を1つ実行して確定し、追加した行の id を返す"""
+    # ① 接続して、1件の登録処理を実行する。
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            new_id = cur.lastrowid
+        # ② 登録を確定し、追加した行の番号を返す。
+        conn.commit()
+        return new_id
+    except Exception:
+        # 途中で失敗したら、未確定の登録を取り消す。
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def execute(query: str, params: tuple = ()) -> int:
+    """UPDATE・DELETEを実行し、影響した行数を返す。0は対象なし・変更なしの場合。"""
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            changed_rows = cur.execute(query, params)
+        conn.commit()
+        return changed_rows
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+@contextmanager
+def transaction():
+    """複数の書き込みを「全部成功」か「全部取り消し」にまとめる。
+    例：ルームを作る（ルーム追加 → 幹事をメンバーに追加 → ルームに幹事を記録）
+        with transaction() as cur:
+            cur.execute("INSERT ...", (...))
+            room_id = cur.lastrowid
+            ...
+    with の中で例外が起きたら、それまでの書き込みはすべて取り消される"""
+    # ① 複数の書き込みで共通して使う接続を作る。
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            # ② いったん呼び出し元へ移り、withの中のSQLを実行してもらう。
+            yield cur
+
+        # ③ すべて成功して戻ってきたら、まとめて保存を確定する。
+        conn.commit()
+    except Exception:
+        # 途中で失敗した場合は、ここまでの書き込みをまとめて取り消す。
+        conn.rollback()
+        # 呼び出し元にも失敗を伝える。
+        raise
+    finally:
+        # 成功・失敗のどちらでも、接続を閉じる。
         conn.close()

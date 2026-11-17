@@ -1,4 +1,4 @@
-// app/ResultCard.tsx — 結果カード（部品）。2週目の変更は import の1行だけ（Gift 型の置き場所が lib/api.ts に変わった）
+// 検索した商品の名前・価格・評価などを、1商品ずつカード形式で表示する部品です。
 import type { Gift } from "@/lib/api";
 
 export default function ResultCard({ gift, rank }: { gift: Gift; rank: number }) {

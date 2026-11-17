@@ -1,0 +1,16 @@
+test_create_and_reload_from_new_client (test_rooms.RoomTests.test_create_and_reload_from_new_client) ... ok
+test_existing_search_contract (test_rooms.RoomTests.test_existing_search_contract) ... ok
+test_existing_search_empty_and_error (test_rooms.RoomTests.test_existing_search_empty_and_error) ... ok
+test_failed_member_insert_rolls_back_room (test_rooms.RoomTests.test_failed_member_insert_rolls_back_room) ... ok
+test_independent_rooms (test_rooms.RoomTests.test_independent_rooms) ... ok
+test_invalid_deadlines_do_not_write (test_rooms.RoomTests.test_invalid_deadlines_do_not_write) ... ok
+test_invalid_fields_do_not_write (test_rooms.RoomTests.test_invalid_fields_do_not_write) ... ok
+test_missing_and_invalid_room (test_rooms.RoomTests.test_missing_and_invalid_room) ... ok
+test_national_and_substitute_holiday_rules (test_rooms.RoomTests.test_national_and_substitute_holiday_rules) ... ok
+test_sql_values_are_parameters (test_rooms.RoomTests.test_sql_values_are_parameters) ... ok
+test_unavailable_storage_does_not_expose_detail (test_rooms.RoomTests.test_unavailable_storage_does_not_expose_detail) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.199s
+
+OK
