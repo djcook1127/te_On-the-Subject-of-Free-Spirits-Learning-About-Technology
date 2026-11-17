@@ -2,13 +2,14 @@
 import type { Gift } from "./api";
 
 export type CandidateSlot =
-  | { kind: "product"; productId: string; reason: string; gift: Gift }
+  | { kind: "product"; productId: string; reason: string; gift: Gift; available?: boolean }
   | { kind: "hint"; text: string };
 export type DemoMember = { id: string; name: string };
 export type CandidateDraft = {
   room: { id: string; title: string; budgetTotal: number };
   member: DemoMember;
   demoMembers: DemoMember[];
+  catalogSource?: "demo" | "shared";
   version: number;
   slots: CandidateSlot[];
 };

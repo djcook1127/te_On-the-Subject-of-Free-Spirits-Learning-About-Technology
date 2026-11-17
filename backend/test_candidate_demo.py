@@ -15,7 +15,7 @@ import candidate_demo as demo
 class CandidateDemoTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.env = patch.dict(os.environ, {"GIFTIA_CANDIDATE_DEMO_DB": str(Path(self.temp.name) / "drafts.sqlite3")})
+        self.env = patch.dict(os.environ, {"GIFTIA_CANDIDATE_DEMO_DB": str(Path(self.temp.name) / "drafts.sqlite3"), "GIFTIA_CATALOG_SOURCE": "demo"})
         self.env.start()
         self.client = TestClient(demo.app)
         self.url = "/api/rooms/demo-farewell/candidate-draft"

@@ -1,4 +1,4 @@
-"""B担当のローカル入力検証専用。main.py・共通MySQLへは接続しない。"""
+"""B担当のローカル検証。商品は固定データまたは共通DBの読取、候補保存はSQLiteのみ。"""
 
 import json
 import os
@@ -10,8 +10,9 @@ from typing import Annotated, Literal
 from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from product_catalog import SharedProductCatalog
 
-app = FastAPI(title="Giftia 候補入力ローカル検証（架空参加者・仮API）")
+app = FastAPI(title="Giftia 候補入力ローカル検証（商品読取・候補はローカル保存）")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (3000, 3200)],
@@ -39,6 +40,31 @@ PRODUCTS = [
     {"id": "DEMO-005", "category": "コスメ", "brand": "架空のケア用品店", "name": "ハンドケアセット", "price": 6800, "rating": 4.3, "reviewCount": 11},
 ]
 PRODUCT_BY_ID = {p["id"]: p for p in PRODUCTS}
+
+
+class DemoProductCatalog:
+    source = "demo"
+
+    def search(self, q, category, indiv_wrap, price_min, price_max, limit):
+        result = [p for p in PRODUCTS if
+                  all(word.lower() in f"{p['name']} {p['brand']} {p['category']}".lower() for word in q.split())
+                  and (not category or p["category"] == category)
+                  and (not indiv_wrap or "個包装" in p["name"])
+                  and (price_min is None or p["price"] >= price_min)
+                  and (price_max is None or p["price"] <= price_max)]
+        return {"total": len(result), "results": result[:limit]}
+
+    def get_many(self, ids):
+        return {pid: {"gift": PRODUCT_BY_ID[pid], "available": True} for pid in ids if pid in PRODUCT_BY_ID}
+
+
+def get_catalog():
+    source = os.environ.get("GIFTIA_CATALOG_SOURCE", "demo")
+    if source == "shared":
+        return SharedProductCatalog()
+    if source == "demo":
+        return DemoProductCatalog()
+    raise HTTPException(503, "商品取得元の設定を確認してください")
 
 
 class ProductSlot(BaseModel):
@@ -101,13 +127,28 @@ def participant(room_id, member_id):
     return room, member
 
 
-def response(room, member, row):
+def response(room, member, row, catalog=None, products=None):
     slots = json.loads(row["slots"]) if row else []
+    catalog = catalog or get_catalog()
+    ids = [slot["productId"] for slot in slots if slot["kind"] == "product"]
+    products = catalog.get_many(ids) if products is None else products
+    visible_slots = []
+    for slot in slots:
+        if slot["kind"] == "hint":
+            visible_slots.append(slot)
+            continue
+        product = products.get(slot["productId"])
+        # モード切替前の架空候補や、取り扱いがなくなった商品を黙って削除しない。
+        gift = product["gift"] if product else slot.get("gift") or PRODUCT_BY_ID.get(slot["productId"])
+        if gift is None:
+            raise HTTPException(409, "保存済みの商品情報を確認できません。保存データの確認が必要です")
+        visible_slots.append(dict(slot, gift=gift, available=bool(product and product["available"])))
     return {
         "room": {key: room[key] for key in ("id", "title", "budgetTotal")},
         "member": member, "demoMembers": room["members"],
+        "catalogSource": catalog.source,
         "version": row["version"] if row else 0,
-        "slots": [dict(slot, gift=PRODUCT_BY_ID[slot["productId"]]) if slot["kind"] == "product" else slot for slot in slots],
+        "slots": visible_slots,
     }
 
 
@@ -115,13 +156,7 @@ def response(room, member, row):
 def search(q: str = "", category: str = "", indiv_wrap: bool = False,
            price_min: int | None = Query(None, ge=0), price_max: int | None = Query(None, ge=0),
            limit: int = Query(20, ge=1, le=100)):
-    result = [p for p in PRODUCTS if
-              all(word.lower() in f"{p['name']} {p['brand']} {p['category']}".lower() for word in q.split())
-              and (not category or p["category"] == category)
-              and (not indiv_wrap or "個包装" in p["name"])
-              and (price_min is None or p["price"] >= price_min)
-              and (price_max is None or p["price"] <= price_max)]
-    return {"total": len(result), "results": result[:limit]}
+    return get_catalog().search(q, category, indiv_wrap, price_min, price_max, limit)
 
 
 @app.get("/api/rooms/{room_id}/candidate-draft")
@@ -139,8 +174,12 @@ def save_draft(room_id: str, body: DraftInput, member_id: str = Header(alias="X-
     ids = [s["productId"] for s in slots if s["kind"] == "product"]
     if len(ids) != len(set(ids)):
         raise HTTPException(400, "同じ商品は1つの枠にまとめてください")
-    if any(product_id not in PRODUCT_BY_ID for product_id in ids):
-        raise HTTPException(400, "商品が見つかりません。検索し直してください")
+    catalog = get_catalog()
+    products = catalog.get_many(ids)
+    if any(pid not in products or not products[pid]["available"] for pid in ids):
+        raise HTTPException(400, "候補の商品が見つからないか在庫切れです。該当の商品を削除または入れ替えてください")
+    # 商品情報はサーバー側で取得し直す。将来取り扱い終了となった場合の表示用にも残す。
+    slots = [dict(slot, gift=products[slot["productId"]]["gift"]) if slot["kind"] == "product" else slot for slot in slots]
     with connection() as con:
         # 同一参加者の複数タブから、古い下書きで上書きされることを防ぐ。
         con.execute("BEGIN IMMEDIATE")
@@ -151,4 +190,4 @@ def save_draft(room_id: str, body: DraftInput, member_id: str = Header(alias="X-
         version += 1
         con.execute("INSERT INTO drafts(room_id,member_id,version,slots) VALUES(?,?,?,?) ON CONFLICT(room_id,member_id) DO UPDATE SET version=excluded.version,slots=excluded.slots",
                     (room_id, member_id, version, json.dumps(slots, ensure_ascii=False)))
-        return response(room, member, {"version": version, "slots": json.dumps(slots)})
+        return response(room, member, {"version": version, "slots": json.dumps(slots)}, catalog, products)

@@ -23,5 +23,8 @@ Issueが作成できない場合は、理由と起票用本文を残す。この
 |---|---|---|
 | 2026-11-15 | [既存検索の穴埋め・起動ファイルの復元](2026-11-15-search-starter.md) | [Issue #8](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/8)・[PR #9](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/9)、コミット・push済み、レビュー待ち |
 | 2026-11-15 | [GitHub Issue連携の403を調査しCLIで接続](2026-11-15-github-connection.md) | CLI認証・WRITE権限・Issue作成と読み戻しを確認済み。アプリ側の権限設定は未変更 |
+| 2026-11-15 | [候補ストックと手掛かり入力](2026-11-15-candidate-stock.md) | Issue #12・Draft PR #13。複数タブでの後続確認は下記のお気に入り追加記録を参照 |
+| 2026-11-15 | [普段の検索から送別用のお気に入りを保存](2026-11-15-farewell-favorites.md) | Issue #14・Draft PR #15。保存の境界テスト8件・lint・build、検索からルームへの取込と保存復元を確認 |
+| 2026-11-15 | [共通DBの商品読取を候補保存へ接続](2026-11-15-shared-catalog.md) | Issue #16・Draft PR #17。共通DBはREAD ONLY、候補はSQLite。APIテスト19件・お気に入り8件・lint・buildと商品検索から保存復元を確認 |
 
 別管理の「step3最新情報」のWord・開発ルールは、この作業記録と自動で同期しない。参照した版を必要に応じて記録する。
