@@ -41,3 +41,7 @@ GitHub連携での起票は403で失敗し、ブラウザーからIssue作成・
 ### 最終確認
 
 表示調整後の`npm.cmd run lint`、`npm.cmd run build`（TypeScriptを含む）は成功。既存のフロントテスト`node --test tests/localParticipation.test.mjs tests/farewellFavorites.test.mjs`も13件すべて成功。NodeのMODULE_TYPELESS_PACKAGE_JSON警告は既存の設定に由来し、今回の作業では変更していない。
+
+### GitHub反映
+
+実装コミット`b6b4566`を作業ブランチへpush済み。[Draft PR #23](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/23)を作成。レビュー・Approve・マージは未実施。本記録の反映状況追記は後続の文書コミットに保存する。
