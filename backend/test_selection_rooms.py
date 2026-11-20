@@ -77,7 +77,7 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(state["phase"], "voting")
         self.assertEqual(len(state["candidates"]), 3)  # 重複商品はまとめる。
         with selection.connection() as con:
-            self.assertEqual(con.execute("SELECT COUNT(*) FROM selection_proposals").fetchone()[0], 15)
+            self.assertEqual(con.execute("SELECT COUNT(*) AS n FROM selection_proposals WHERE room_id=%s", (int(self.base.split('/')[3]),)).fetchone()["n"], 15)
 
     def test_optimistic_draft_lock_and_protected_roster(self):
         self.assign(self.ids[:2])

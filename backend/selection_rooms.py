@@ -1,5 +1,6 @@
-"""Issue #22: 名前参加から共同決定まで。商品は読取、ルーム情報は既存SQLiteへ保存。"""
+"""Issue #22・24: 名前参加から共同決定まで。SQLite／共通MySQLを明示選択。"""
 import json
+import os
 import random
 import sqlite3
 from contextlib import contextmanager
@@ -9,20 +10,31 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 
-import local_rooms as rooms
+import local_rooms
+import shared_rooms
+from selection_store import SQLiteStore
 from candidate_demo import get_catalog
 from product_catalog import PROJECTION, read_only_cursor, to_gift
+
+storage_mode = os.environ.get("GIFTIA_ROOM_STORAGE", "sqlite")
+if storage_mode not in {"sqlite", "shared"}:
+    raise RuntimeError("GIFTIA_ROOM_STORAGEはsqliteまたはsharedを指定してください")
+rooms = shared_rooms if storage_mode == "shared" else local_rooms
 
 app = FastAPI(title="Giftia みんなで決める送別ギフト")
 app.add_middleware(CORSMiddleware, allow_origins=rooms.ORIGINS, allow_credentials=True,
                    allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type"])
 app.middleware("http")(rooms.local_origin_only)
-app.add_exception_handler(sqlite3.Error, rooms.storage_error)
+app.add_exception_handler(sqlite3.Error, local_rooms.storage_error)
 RoomId = rooms.RoomId
 
 
 @contextmanager
 def connection():
+    if rooms is shared_rooms:
+        with shared_rooms.connection() as con:
+            yield con
+        return
     with rooms.connection() as con:
         con.executescript('''
           CREATE TABLE IF NOT EXISTS selection_state (
@@ -57,15 +69,15 @@ def connection():
           );
         ''')
         con.execute("BEGIN IMMEDIATE")
-        yield con
+        yield SQLiteStore(con)
 
 
 def context(con, room_id, request, organizer=False, phase=None):
     room, member = rooms.own_member(con, room_id, request)
     if organizer and member["id"] != room["organizer_id"]:
         raise HTTPException(403, "主催者だけが操作できます")
-    con.execute("INSERT OR IGNORE INTO selection_state(room_id) VALUES (?)", (room_id,))
-    state = con.execute("SELECT * FROM selection_state WHERE room_id=?", (room_id,)).fetchone()
+    con.ensure_state(room_id)
+    state = con.execute("SELECT * FROM selection_state WHERE room_id=%s", (room_id,)).fetchone()
     if phase and state["phase"] != phase:
         raise HTTPException(409, "ルームの段階が変わっています。最新の内容を読み直してください")
     return room, member, state
@@ -74,7 +86,7 @@ def context(con, room_id, request, organizer=False, phase=None):
 def candidates(con, room_id):
     # 提案元・提案者数を共有レスポンスへ出さず、重複商品を1件にまとめる。
     grouped = {}
-    for row in con.execute("SELECT product_id,reason,gift FROM selection_proposals WHERE room_id=? ORDER BY product_id,reason", (room_id,)):
+    for row in con.execute("SELECT product_id,reason,gift FROM selection_proposals WHERE room_id=%s ORDER BY product_id,reason", (room_id,)):
         item = grouped.setdefault(row["product_id"], {"gift": json.loads(row["gift"]), "reasons": []})
         if row["reason"] and row["reason"] not in item["reasons"]:
             item["reasons"].append(row["reason"])
@@ -82,7 +94,7 @@ def candidates(con, room_id):
 
 
 def require_candidate(con, room_id, product_id):
-    if not con.execute("SELECT 1 FROM selection_proposals WHERE room_id=? AND product_id=?", (room_id, product_id)).fetchone():
+    if not con.execute("SELECT 1 FROM selection_proposals WHERE room_id=%s AND product_id=%s", (room_id, product_id)).fetchone():
         raise HTTPException(404, "このルームの候補ではありません")
 
 
@@ -133,25 +145,26 @@ def search(q: str = "", category: str = "", indiv_wrap: bool = False,
 def get_selection(room_id: RoomId, request: Request):
     with connection() as con:
         room, member, state = context(con, room_id, request)
-        roster = con.execute("SELECT * FROM selection_submitters WHERE room_id=?", (room_id,)).fetchall()
+        roster = con.execute("SELECT * FROM selection_submitters WHERE room_id=%s", (room_id,)).fetchall()
         own = next((r for r in roster if r["member_id"] == member["id"]), None)
-        personal = con.execute("SELECT product_id,reason,gift FROM selection_proposals WHERE room_id=? AND member_id=? ORDER BY product_id", (room_id, member["id"])).fetchall()
+        personal = con.execute("SELECT product_id,reason,gift FROM selection_proposals WHERE room_id=%s AND member_id=%s ORDER BY product_id", (room_id, member["id"])).fetchall()
         visible = []
         if state["phase"] != "collecting":
             for pid, item in candidates(con, room_id).items():
-                totals = con.execute("SELECT COALESCE(SUM(stars),0) AS total,COUNT(*) AS voters FROM selection_votes WHERE room_id=? AND product_id=?", (room_id, pid)).fetchone()
-                vote = con.execute("SELECT stars FROM selection_votes WHERE room_id=? AND member_id=? AND product_id=?", (room_id, member["id"], pid)).fetchone()
-                comments = [dict(r) for r in con.execute("SELECT id,text FROM selection_comments WHERE room_id=? AND product_id=? ORDER BY id", (room_id, pid))]
+                totals = con.execute("SELECT COALESCE(SUM(stars),0) AS total,COUNT(*) AS voters FROM selection_votes WHERE room_id=%s AND product_id=%s", (room_id, pid)).fetchone()
+                vote = con.execute("SELECT stars FROM selection_votes WHERE room_id=%s AND member_id=%s AND product_id=%s", (room_id, member["id"], pid)).fetchone()
+                comments = [dict(r) for r in con.execute("SELECT id,text FROM selection_comments WHERE room_id=%s AND product_id=%s ORDER BY id", (room_id, pid))]
                 visible.append({**item, "totalStars": totals["total"], "voters": totals["voters"], "myStars": vote["stars"] if vote else None, "comments": comments})
             visible.sort(key=lambda c: (-c["totalStars"], c["gift"]["id"]))
         is_organizer = member["id"] == room["organizer_id"]
         return {"room": {"id": str(room_id), "title": room["title"], "budgetTotal": room["budget_total"]},
+                "storageSource": getattr(rooms, "STORAGE_SOURCE", "sqlite"),
                 "phase": state["phase"], "catalogSource": get_catalog().source,
                 "me": {"id": member["id"], "name": member["nickname"], "isOrganizer": is_organizer,
                        "canPropose": own is not None, "submitted": bool(own and own["submitted"]), "version": own["version"] if own else 0},
-                "members": [{"id": r["id"], "name": r["nickname"], "canPropose": any(s["member_id"] == r["id"] for s in roster)} for r in con.execute("SELECT id,nickname FROM consultation_members WHERE consultation_id=? ORDER BY id", (room_id,))] if is_organizer else [],
+                "members": [{"id": r["id"], "name": r["nickname"], "canPropose": any(s["member_id"] == r["id"] for s in roster)} for r in con.execute("SELECT id,nickname FROM consultation_members WHERE consultation_id=%s ORDER BY id", (room_id,))] if is_organizer else [],
                 "progress": {"designated": len(roster), "submitted": sum(r["submitted"] for r in roster)},
-                "notes": [dict(r) for r in con.execute("SELECT id,kind,text FROM selection_notes WHERE room_id=? ORDER BY id", (room_id,))],
+                "notes": [dict(r) for r in con.execute("SELECT id,kind,text FROM selection_notes WHERE room_id=%s ORDER BY id", (room_id,))],
                 "ownProducts": [{"productId": r["product_id"], "reason": r["reason"], "gift": json.loads(r["gift"])} for r in personal],
                 "candidates": visible, "decision": json.loads(state["decision"]) if state["decision"] else None}
 
@@ -163,18 +176,18 @@ def set_submitters(room_id: RoomId, body: Submitters, request: Request):
         raise HTTPException(400, "提出者を重複なく選んでください")
     with connection() as con:
         context(con, room_id, request, organizer=True, phase="collecting")
-        if con.execute("SELECT 1 FROM selection_submitters WHERE room_id=? AND submitted=1", (room_id,)).fetchone():
+        if con.execute("SELECT 1 FROM selection_submitters WHERE room_id=%s AND submitted=1", (room_id,)).fetchone():
             raise HTTPException(409, "提出開始後は提出者を変更できません")
-        members = {r["id"] for r in con.execute("SELECT id FROM consultation_members WHERE consultation_id=?", (room_id,))}
+        members = {r["id"] for r in con.execute("SELECT id FROM consultation_members WHERE consultation_id=%s", (room_id,))}
         if not set(ids) <= members:
             raise HTTPException(400, "このルームの参加者を指定してください")
-        previous = {r["member_id"] for r in con.execute("SELECT member_id FROM selection_submitters WHERE room_id=?", (room_id,))}
+        previous = {r["member_id"] for r in con.execute("SELECT member_id FROM selection_submitters WHERE room_id=%s", (room_id,))}
         removed = previous - set(ids)
         for mid in removed:
-            if con.execute("SELECT 1 FROM selection_proposals WHERE room_id=? AND member_id=?", (room_id, mid)).fetchone():
+            if con.execute("SELECT 1 FROM selection_proposals WHERE room_id=%s AND member_id=%s", (room_id, mid)).fetchone():
                 raise HTTPException(409, "下書きがある提出者は外せません。本人が候補を外して保存してから変更してください")
-            con.execute("DELETE FROM selection_submitters WHERE room_id=? AND member_id=?", (room_id, mid))
-        con.executemany("INSERT OR IGNORE INTO selection_submitters(room_id,member_id) VALUES (?,?)", [(room_id, mid) for mid in ids])
+            con.execute("DELETE FROM selection_submitters WHERE room_id=%s AND member_id=%s", (room_id, mid))
+        con.add_submitters(room_id, ids)
     return {"ok": True}
 
 
@@ -182,7 +195,7 @@ def set_submitters(room_id: RoomId, body: Submitters, request: Request):
 def save_proposal(room_id: RoomId, body: Proposal, request: Request):
     with connection() as con:
         _, member, _ = context(con, room_id, request, phase="collecting")
-        own = con.execute("SELECT * FROM selection_submitters WHERE room_id=? AND member_id=?", (room_id, member["id"])).fetchone()
+        own = con.execute("SELECT * FROM selection_submitters WHERE room_id=%s AND member_id=%s", (room_id, member["id"])).fetchone()
         if not own:
             raise HTTPException(403, "主催者が指定した提出者だけが候補を提出できます")
         if own["submitted"] or own["version"] != body.version:
@@ -193,9 +206,9 @@ def save_proposal(room_id: RoomId, body: Proposal, request: Request):
         found = get_catalog().get_many(ids)
         if any(pid not in found or not found[pid]["available"] for pid in ids):
             raise HTTPException(400, "取り扱いのない商品か在庫切れが含まれています")
-        con.execute("DELETE FROM selection_proposals WHERE room_id=? AND member_id=?", (room_id, member["id"]))
-        con.executemany("INSERT INTO selection_proposals(room_id,member_id,product_id,reason,gift) VALUES (?,?,?,?,?)", [(room_id, member["id"], p.productId, p.reason, json.dumps(found[p.productId]["gift"], ensure_ascii=False)) for p in body.products])
-        con.execute("UPDATE selection_submitters SET version=version+1 WHERE room_id=? AND member_id=?", (room_id, member["id"]))
+        con.execute("DELETE FROM selection_proposals WHERE room_id=%s AND member_id=%s", (room_id, member["id"]))
+        con.executemany("INSERT INTO selection_proposals(room_id,member_id,product_id,reason,gift) VALUES (%s,%s,%s,%s,%s)", [(room_id, member["id"], p.productId, p.reason, json.dumps(found[p.productId]["gift"], ensure_ascii=False)) for p in body.products])
+        con.execute("UPDATE selection_submitters SET version=version+1 WHERE room_id=%s AND member_id=%s", (room_id, member["id"]))
     return {"version": body.version + 1}
 
 
@@ -203,12 +216,12 @@ def save_proposal(room_id: RoomId, body: Proposal, request: Request):
 def submit(room_id: RoomId, request: Request):
     with connection() as con:
         _, member, _ = context(con, room_id, request, phase="collecting")
-        own = con.execute("SELECT * FROM selection_submitters WHERE room_id=? AND member_id=?", (room_id, member["id"])).fetchone()
+        own = con.execute("SELECT * FROM selection_submitters WHERE room_id=%s AND member_id=%s", (room_id, member["id"])).fetchone()
         if not own:
             raise HTTPException(403, "候補の提出権限がありません")
         if own["submitted"]:
             return {"ok": True}
-        items = con.execute("SELECT product_id FROM selection_proposals WHERE room_id=? AND member_id=?", (room_id, member["id"])).fetchall()
+        items = con.execute("SELECT product_id FROM selection_proposals WHERE room_id=%s AND member_id=%s", (room_id, member["id"])).fetchall()
         if not items:
             raise HTTPException(400, "商品を1〜3品保存してください")
         found = get_catalog().get_many([r["product_id"] for r in items])
@@ -216,10 +229,10 @@ def submit(room_id: RoomId, request: Request):
             raise HTTPException(400, "商品情報が変わっています。候補を入れ替えてください")
         # 下書き後の価格変更も共有前に反映。
         for pid, product in found.items():
-            con.execute("UPDATE selection_proposals SET gift=? WHERE room_id=? AND member_id=? AND product_id=?", (json.dumps(product["gift"], ensure_ascii=False), room_id, member["id"], pid))
-        con.execute("UPDATE selection_submitters SET submitted=1 WHERE room_id=? AND member_id=?", (room_id, member["id"]))
-        if not con.execute("SELECT 1 FROM selection_submitters WHERE room_id=? AND submitted=0", (room_id,)).fetchone():
-            con.execute("UPDATE selection_state SET phase='voting' WHERE room_id=?", (room_id,))
+            con.execute("UPDATE selection_proposals SET gift=%s WHERE room_id=%s AND member_id=%s AND product_id=%s", (json.dumps(product["gift"], ensure_ascii=False), room_id, member["id"], pid))
+        con.execute("UPDATE selection_submitters SET submitted=1 WHERE room_id=%s AND member_id=%s", (room_id, member["id"]))
+        if not con.execute("SELECT 1 FROM selection_submitters WHERE room_id=%s AND submitted=0", (room_id,)).fetchone():
+            con.execute("UPDATE selection_state SET phase='voting' WHERE room_id=%s", (room_id,))
     return {"ok": True}
 
 
@@ -227,7 +240,7 @@ def submit(room_id: RoomId, request: Request):
 def random_products(room_id: RoomId, request: Request, exclude: str = Query("", max_length=2000)):
     with connection() as con:
         room, member, _ = context(con, room_id, request, phase="collecting")
-        own = con.execute("SELECT submitted FROM selection_submitters WHERE room_id=? AND member_id=?", (room_id, member["id"])).fetchone()
+        own = con.execute("SELECT submitted FROM selection_submitters WHERE room_id=%s AND member_id=%s", (room_id, member["id"])).fetchone()
         if not own or own["submitted"]:
             raise HTTPException(403, "候補を入力できる提出者だけが利用できます")
     excluded = set(exclude.split(",")) - {""}
@@ -251,7 +264,7 @@ def add_note(room_id: RoomId, body: Note, request: Request):
         _, member, state = context(con, room_id, request)
         if state["phase"] == "decided":
             raise HTTPException(409, "決定後の情報は変更できません")
-        con.execute("INSERT INTO selection_notes(room_id,member_id,kind,text) VALUES (?,?,?,?)", (room_id, member["id"], body.kind, body.text))
+        con.execute("INSERT INTO selection_notes(room_id,member_id,kind,text) VALUES (%s,%s,%s,%s)", (room_id, member["id"], body.kind, body.text))
     return {"ok": True}
 
 
@@ -260,7 +273,7 @@ def vote(room_id: RoomId, product_id: str, body: Vote, request: Request):
     with connection() as con:
         _, member, _ = context(con, room_id, request, phase="voting")
         require_candidate(con, room_id, product_id)
-        con.execute("INSERT INTO selection_votes(room_id,member_id,product_id,stars) VALUES (?,?,?,?) ON CONFLICT(room_id,member_id,product_id) DO UPDATE SET stars=excluded.stars", (room_id, member["id"], product_id, body.stars))
+        con.save_vote((room_id, member["id"], product_id, body.stars))
     return {"ok": True}
 
 
@@ -269,7 +282,7 @@ def comment(room_id: RoomId, product_id: str, body: Comment, request: Request):
     with connection() as con:
         _, member, _ = context(con, room_id, request, phase="voting")
         require_candidate(con, room_id, product_id)
-        con.execute("INSERT INTO selection_comments(room_id,member_id,product_id,text) VALUES (?,?,?,?)", (room_id, member["id"], product_id, body.text))
+        con.execute("INSERT INTO selection_comments(room_id,member_id,product_id,text) VALUES (%s,%s,%s,%s)", (room_id, member["id"], product_id, body.text))
     return {"ok": True}
 
 
@@ -293,9 +306,9 @@ def decide(room_id: RoomId, body: Decision, request: Request):
         if any(found[pid]["gift"]["price"] > room["budget_total"] for pid in ids):
             raise HTTPException(400, "総予算を超える商品が含まれています")
         decision = {"mode": body.mode, "products": [found[pid]["gift"] for pid in ids], "payment": "demo"}
-        con.execute("UPDATE selection_state SET phase='decided',decision=? WHERE room_id=?", (json.dumps(decision, ensure_ascii=False), room_id))
+        con.execute("UPDATE selection_state SET phase='decided',decision=%s WHERE room_id=%s", (json.dumps(decision, ensure_ascii=False), room_id))
     return {"ok": True}
 
 
 # 名前参加・作成・本人Cookieは既存実装を利用。従来モードは変更しない。
-app.include_router(rooms.app.router)
+app.include_router(shared_rooms.router if rooms is shared_rooms else local_rooms.app.router)

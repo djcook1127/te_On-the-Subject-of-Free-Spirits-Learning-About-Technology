@@ -5,6 +5,7 @@ export type Selection = {
   room: { id: string; title: string; budgetTotal: number };
   phase: "collecting" | "voting" | "decided";
   catalogSource: "demo" | "shared";
+  storageSource: "sqlite" | "shared";
   me: { id: number; name: string; isOrganizer: boolean; canPropose: boolean; submitted: boolean; version: number };
   members: { id: number; name: string; canPropose: boolean }[];
   progress: { designated: number; submitted: number };
@@ -15,6 +16,18 @@ export type Selection = {
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export async function restoreImportedRoom(roomId: string): Promise<string | null> {
+  const response = await fetch(`${API}/api/rooms/${encodeURIComponent(roomId)}/migrate-session`, {
+    method: "POST", credentials: "include", cache: "no-store",
+  });
+  if ([401, 404, 405].includes(response.status)) return null;
+  if (!response.ok) throw new Error("共通DBの参加情報を確認できません。接続を確認してください。");
+  const result: { room_path: string | null } = await response.json();
+  if (result.room_path === null) return null;
+  if (!/^\/rooms\/\d+\/select$/.test(result.room_path)) throw new Error("引継ぎ先を確認できません。");
+  return result.room_path;
+}
 
 export class ParticipationRequired extends Error {}
 

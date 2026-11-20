@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { searchGifts, type Gift } from "@/lib/api";
 import { joinLocalRoom } from "@/lib/localParticipation";
-import { ParticipationRequired, selectionRequest, type ProposalProduct, type Selection } from "@/lib/selection";
+import { ParticipationRequired, restoreImportedRoom, selectionRequest, type ProposalProduct, type Selection } from "@/lib/selection";
 import { useFarewellFavorites } from "@/lib/useFarewellFavorites";
 import RoomShell from "../../RoomShell";
 import styles from "./selection.module.css";
@@ -44,7 +44,15 @@ export default function SelectionWorkspace({ roomId }: { roomId: string }) {
 
   useEffect(() => {
     let active = true;
-    selectionRequest<Selection>(roomId).then(value => {
+    (async () => {
+      const importedPath = new URLSearchParams(window.location.search).get("legacy") === "1" ? await restoreImportedRoom(roomId) : null;
+      if (!active) return null;
+      if (importedPath && importedPath !== window.location.pathname) {
+        window.location.replace(importedPath); return null;
+      }
+      return selectionRequest<Selection>(roomId);
+    })().then(value => {
+      if (!value) return;
       if (!active) return;
       setData(value); setProducts(value.ownProducts); setVersion(value.me.version);
       setSubmitters(value.members.filter(m => m.canPropose).map(m => m.id));
@@ -99,12 +107,12 @@ export default function SelectionWorkspace({ roomId }: { roomId: string }) {
   return <RoomShell title={data?.room.title}><div className={styles.workspace}>
     <div className="room-page-intro"><p className="room-eyebrow">みんなで選ぶ送別ギフト</p><h1>{data?.room.title ?? "ギフトを一緒に決めよう"}</h1>
       <p>候補を持ち寄って、同じ情報を見ながら納得できる贈りものへ。</p></div>
-    {error && <p className="room-error" role="alert">{error} <button disabled={busy} onClick={() => run(async () => { await reload(); })}>最新の状況を確認</button></p>}
+    {error && <p className="room-error" role="alert">{error} <button disabled={busy} onClick={() => run(async () => { await reload(); })}>最新の状況を確認</button> <a href={`/rooms/${encodeURIComponent(roomId)}/select?legacy=1`}>以前のルームを引き継ぐ</a></p>}
     <p role="status" className={styles.notice}>{notice}</p>
     {joining && <form className="room-panel" onSubmit={event => { event.preventDefault(); run(async () => { await joinLocalRoom(roomId, nickname.trim()); await reload(true); }); }}>
       <h2>名前を入力して参加する</h2><p>表示用のニックネームです。投票・コメントに名前は表示されません。</p>
       <label>ニックネーム<input value={nickname} onChange={e => setNickname(e.target.value)} maxLength={30} required /></label>
-      <button className="room-button" disabled={busy || !nickname.trim()}>参加する</button></form>}
+      <button className="room-button" disabled={busy || !nickname.trim()}>参加する</button><p><a href={`/rooms/${encodeURIComponent(roomId)}/select?legacy=1`}>以前のルームを引き継ぐ</a></p></form>}
     {!data && !joining && !error && <p role="status">ルームを読み込んでいます…</p>}
     {data && <>
       <div className={styles.context}><span>参加中：{data.me.name}さん</span><strong>総予算 ¥{data.room.budgetTotal.toLocaleString()}</strong><span>提出 {data.progress.submitted} / {data.progress.designated}人</span>
@@ -156,7 +164,7 @@ export default function SelectionWorkspace({ roomId }: { roomId: string }) {
           </> : <p>主催者が最終商品・贈り方を確定すると、ここに決定内容が表示されます。</p>}
         </>}
       </section>}
-      <div className={styles.footer}><Link href={`/rooms/${encodeURIComponent(roomId)}`}>ルームの基本情報へ</Link><span>{data.catalogSource === "shared" ? "商品：共通DB" : "商品：架空データ"} · ルーム情報はこのAPIのSQLiteに保存</span></div>
+      <div className={styles.footer}><Link href={`/rooms/${encodeURIComponent(roomId)}`}>ルームの基本情報へ</Link><span>{data.catalogSource === "shared" ? "商品：共通DB" : "商品：架空データ"} · {data.storageSource === "shared" ? "ルーム・提案・評価・決定：共通DBに保存" : "ルーム情報はこのAPIのSQLiteに保存"}</span></div>
     </>}
   </div></RoomShell>;
 }
