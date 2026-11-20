@@ -129,7 +129,7 @@ export default function RoomPage() {
       </section>
 
       {(room.local_preview || room.selection_enabled) && (process.env.NEXT_PUBLIC_SELECTION_ROOMS === "1" ?
-        <section className="room-panel room-saved"><div><h2>みんなで候補を持ち寄ろう</h2><p>最大5人が3品ずつ提案し、全員で匿名の★評価・コメントができます。</p><Link href={`/rooms/${encodeURIComponent(roomId)}/select`} className="room-button">提案・比較・決定へ →</Link></div></section>
+        <section className="room-panel room-saved"><div><h2>みんなで候補を持ち寄ろう</h2><p>開設者が最初の候補を提出し、その後に参加者も追加できます。ルーム全体で最大10品を集め、主催者の投票開始後に★評価します。</p><Link href={`/rooms/${encodeURIComponent(roomId)}/select`} className="room-button">提案・比較・決定へ →</Link><p>主催者は共同決定画面の「ルーム情報を編集」から、投票開始前に設定を修正できます。</p></div></section>
         : <RoomParticipation key={roomId} roomId={roomId} />)}
 
       <div className="room-bottom-grid">

@@ -16,6 +16,22 @@ from selection_store import MySQLStore, SQLiteStore
 
 
 class StoreTests(unittest.TestCase):
+    def test_snapshot_batches_reads_and_keeps_values_bound(self):
+        raw = MagicMock()
+        cursor = raw.cursor.return_value.__enter__.return_value
+        cursor.description = [("snapshot",)]
+        cursor.fetchall.return_value = [{key: json.dumps(value) for key, value in {
+            "own": [{"version": 1, "submitted": 1}], "personal": [{"product_id": "DUMMY", "reason": "説明", "gift": {"id": "DUMMY"}}],
+            "published": [], "members": [], "own_votes": [], "totals": [], "old_notes": [], "old_comments": [], "room_comments": [],
+        }.items()}]
+        result = MySQLStore(raw).selection_snapshot(7, 8, False, "voting")
+        self.assertEqual(result["personal"][0]["gift"], '{"id": "DUMMY"}')
+        cursor.execute.assert_called_once()
+        sql, values = cursor.execute.call_args.args
+        self.assertIn("JSON_ARRAYAGG", sql)
+        self.assertEqual(sql.count('%s'), len(values))
+        self.assertIn(False, values)
+
     def test_mysql_values_are_bound_and_cursor_is_closed(self):
         raw = MagicMock()
         cursor = raw.cursor.return_value.__enter__.return_value
@@ -68,6 +84,15 @@ class StoreTests(unittest.TestCase):
         sql, params = store.execute.call_args.args
         self.assertIn("FOR UPDATE", sql)
         self.assertEqual(params, (8,))
+
+    def test_votes_use_shared_room_lock_while_phase_changes_keep_exclusive_lock(self):
+        store = MagicMock()
+        store.execute.return_value.fetchone.return_value = {"id": 8}
+        shared_rooms.room_row(store, 8, lock="shared")
+        self.assertIn("LOCK IN SHARE MODE", store.execute.call_args.args[0])
+        self.assertNotIn("FOR UPDATE", store.execute.call_args.args[0])
+        shared_rooms.room_row(store, 8, lock=False)
+        self.assertNotIn("FOR UPDATE", store.execute.call_args.args[0])
 
     def test_cookie_namespace_is_distinct(self):
         import local_rooms

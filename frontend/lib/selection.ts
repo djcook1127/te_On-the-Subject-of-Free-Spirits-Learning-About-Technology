@@ -2,17 +2,19 @@ import type { Gift } from "./api";
 
 export type ProposalProduct = { productId: string; reason: string; gift: Gift };
 export type Selection = {
-  room: { id: string; title: string; budgetTotal: number };
+  room: { id: string; title: string; budgetTotal: number; memberCount: number; deliverBy: string };
+  initialProposalSubmitted: boolean;
   phase: "collecting" | "voting" | "decided";
   catalogSource: "demo" | "shared";
   storageSource: "sqlite" | "shared";
   me: { id: number; name: string; isOrganizer: boolean; canPropose: boolean; submitted: boolean; version: number };
   members: { id: number; name: string; canPropose: boolean }[];
-  progress: { designated: number; submitted: number };
+  progress: { designated: number; submitted: number; candidateCount: number; candidateLimit: number };
   notes: { id: number; kind: string; text: string }[];
   ownProducts: ProposalProduct[];
-  candidates: { gift: Gift; reasons: string[]; totalStars: number; voters: number; myStars: number | null; comments: { id: number; text: string }[] }[];
-  decision: { mode: "single" | "catalog"; products: Gift[]; payment: "demo" } | null;
+  candidates: { gift: Gift; reasons: string[]; totalStars: number; voters: number; myStars: number | null }[];
+  comments: { id: string; kind: "好み" | "避けたいもの" | "その他"; text: string; legacyProduct?: string }[];
+  decision: { mode: "single" | "catalog"; products: Gift[]; payment: "demo"; reasonSources?: ("votes" | "comments" | "other")[]; otherReason?: string } | null;
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";

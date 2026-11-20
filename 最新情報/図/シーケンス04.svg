@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 720" role="img" aria-label="4. 投票を開始して星を付けるのシーケンス図">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#275577" stroke-width="1.5"/></marker></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<rect x="6" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="90" y="32" text-anchor="middle" font-size="16" font-weight="700">主催者・参加者</text>
+<line x1="90" y1="68" x2="90" y2="705" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="226" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="310" y="32" text-anchor="middle" font-size="16" font-weight="700">比較・評価画面</text>
+<text x="310" y="53" text-anchor="middle" font-size="11">SelectionWorkspace.tsx</text>
+<line x1="310" y1="68" x2="310" y2="705" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="446" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="530" y="32" text-anchor="middle" font-size="16" font-weight="700">通信係</text>
+<text x="530" y="53" text-anchor="middle" font-size="11">lib/selection.ts</text>
+<line x1="530" y1="68" x2="530" y2="705" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="666" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="750" y="32" text-anchor="middle" font-size="16" font-weight="700">API受付</text>
+<text x="750" y="53" text-anchor="middle" font-size="11">selection_rooms.py</text>
+<line x1="750" y1="68" x2="750" y2="705" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="886" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="970" y="32" text-anchor="middle" font-size="16" font-weight="700">共通DB</text>
+<line x1="970" y1="68" x2="970" y2="705" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<line x1="90" y1="115" x2="310" y2="115" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="106" text-anchor="middle" font-size="13">1. 主催者が投票開始を押す</text>
+<line x1="530" y1="175" x2="750" y2="175" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="640.0" y="166" text-anchor="middle" font-size="13">2. POST start-voting</text>
+<line x1="750" y1="235" x2="970" y2="235" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="860.0" y="226" text-anchor="middle" font-size="13">3. 主催者・候補数を確認してvotingへ</text>
+<line x1="750" y1="295" x2="310" y2="295" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="530.0" y="286" text-anchor="middle" font-size="13">4. 最新状態を返し比較表示へ</text>
+<line x1="90" y1="355" x2="310" y2="355" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="346" text-anchor="middle" font-size="13">5. 星3を押す</text>
+<path d="M310,395 h50 v28 h-50" fill="none" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="368" y="409" font-size="13">6. 星を先に仮表示・保存中を表示</text>
+<line x1="530" y1="475" x2="750" y2="475" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="640.0" y="466" text-anchor="middle" font-size="13">7. PUT products/商品ID/vote</text>
+<line x1="750" y1="535" x2="970" y2="535" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="860.0" y="526" text-anchor="middle" font-size="13">8. 共有ロックで段階確認・評価更新</text>
+<line x1="750" y1="595" x2="530" y2="595" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="640.0" y="586" text-anchor="middle" font-size="13">9. 成功と最新selectionを返す</text>
+<line x1="530" y1="655" x2="310" y2="655" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="420.0" y="646" text-anchor="middle" font-size="13">10. サーバーの値で確定・失敗なら元へ戻す</text>
+</svg>

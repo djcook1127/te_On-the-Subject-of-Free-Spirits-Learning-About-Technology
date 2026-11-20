@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 540" role="img" aria-label="5. 商品・贈り方・決定理由を選ぶのシーケンス図">
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#275577" stroke-width="1.5"/></marker></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<rect x="6" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="90" y="32" text-anchor="middle" font-size="16" font-weight="700">主催者</text>
+<line x1="90" y1="68" x2="90" y2="525" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="226" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="310" y="32" text-anchor="middle" font-size="16" font-weight="700">集計画面</text>
+<text x="310" y="53" text-anchor="middle" font-size="11">SelectionWorkspace.tsx</text>
+<line x1="310" y1="68" x2="310" y2="525" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="446" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="530" y="32" text-anchor="middle" font-size="16" font-weight="700">通信係</text>
+<text x="530" y="53" text-anchor="middle" font-size="11">lib/selection.ts</text>
+<line x1="530" y1="68" x2="530" y2="525" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="666" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="750" y="32" text-anchor="middle" font-size="16" font-weight="700">API受付</text>
+<text x="750" y="53" text-anchor="middle" font-size="11">selection_rooms.py</text>
+<line x1="750" y1="68" x2="750" y2="525" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<rect x="886" y="8" width="168" height="60" rx="9" fill="#edf3f7" stroke="#afc5d4"/>
+<text x="970" y="32" text-anchor="middle" font-size="16" font-weight="700">共通DB</text>
+<line x1="970" y1="68" x2="970" y2="525" stroke="#c2cdd5" stroke-dasharray="5 5"/>
+<line x1="90" y1="115" x2="310" y2="115" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="106" text-anchor="middle" font-size="13">1. 集計を見るを押す</text>
+<path d="M310,155 h50 v28 h-50" fill="none" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="368" y="169" font-size="13">2. tab=resultsへ切替・新しいURLには移らない</text>
+<line x1="90" y1="235" x2="310" y2="235" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="226" text-anchor="middle" font-size="13">3. 単品・商品・理由を選ぶ</text>
+<path d="M310,275 h50 v28 h-50" fill="none" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="368" y="289" font-size="13">4. mode・picked・reasonSourcesを更新</text>
+<line x1="90" y1="355" x2="310" y2="355" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="346" text-anchor="middle" font-size="13">5. デモの購入確認へを押す</text>
+<path d="M310,395 h50 v28 h-50" fill="none" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="368" y="409" font-size="13">6. confirming=true・確認内容を表示</text>
+<line x1="310" y1="475" x2="90" y2="475" stroke="#275577" stroke-width="1.5" marker-end="url(#arrow)"/>
+<text x="200.0" y="466" text-anchor="middle" font-size="13">7. この内容で決定しますかと表示</text>
+</svg>

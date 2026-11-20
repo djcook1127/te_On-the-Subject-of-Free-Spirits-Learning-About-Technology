@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant user as 利用者
+    participant screen as 候補選択画面 SelectionWorkspace.tsx
+    participant client as 通信係 lib/selection.ts
+    participant api as API・商品取得 selection_rooms.py
+    participant db as 共通DB
+    user->>screen: 飲料を選びおまかせを見る
+    client->>api: GET selection/random?category=飲料
+    api->>db: 送別・在庫・価格80〜100％・レビュー4以上
+    api->>screen: ランダム最大3品を返す
+    user->>screen: 候補に追加する
+    screen->>screen: 通信せずproductsへ反映・未保存
+    user->>screen: この2品を提出する
+    client->>api: POST submit・未保存ならversionとproductsも同送
+    api->>db: 下書きと公開候補を同じ取引で保存
+    api->>client: 成功と最新selectionをまとめて返す
+    client->>screen: 候補・版番号・公開状態を更新
+    screen->>user: 提出済み候補を表示

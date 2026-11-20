@@ -18,8 +18,8 @@ router = APIRouter()
 
 
 def _connect():
-    from database import get_connection
-    return get_connection()
+    from connection_pool import pool
+    return pool.acquire()
 
 
 def rollback(raw):
@@ -71,18 +71,29 @@ def session_member(con, room_id, request):
         (hashlib.sha256(token.encode()).hexdigest(), room_id)).fetchone()
 
 
-def room_row(con, room_id):
-    # 全更新がこの親行を先にロックする。5人・3品・段階の判定と更新を直列化。
+def room_row(con, room_id, lock=True):
+    # 更新は親行を先にロック。参照だけの画面取得は書込を待たせない。
     room = con.execute('''SELECT c.*,m.nickname AS organizer_nickname FROM consultations c
         JOIN consultation_members m ON m.id=c.organizer_id AND m.consultation_id=c.id
-        WHERE c.id=%s FOR UPDATE''', (room_id,)).fetchone()
+        WHERE c.id=%s''' + (' LOCK IN SHARE MODE' if lock == "shared" else ' FOR UPDATE' if lock else ''), (room_id,)).fetchone()
     if room is None:
         raise HTTPException(404, "ルームが見つかりません")
     return room
 
 
-def own_member(con, room_id, request):
-    room = room_row(con, room_id)
+def own_member(con, room_id, request, lock=True):
+    if not lock:
+        token = request.cookies.get(cookie_name(room_id))
+        if token:
+            row = con.execute('''SELECT c.*,creator.nickname AS organizer_nickname,m.id AS session_member_id,m.nickname AS session_nickname
+                FROM consultations c JOIN consultation_members creator ON creator.id=c.organizer_id AND creator.consultation_id=c.id
+                JOIN consultation_member_sessions s ON s.room_id=c.id
+                JOIN consultation_members m ON m.id=s.member_id AND m.consultation_id=c.id
+                WHERE c.id=%s AND s.token_hash=%s AND s.expires_at>UNIX_TIMESTAMP()''',
+                (room_id, hashlib.sha256(token.encode()).hexdigest())).fetchone()
+            if row:
+                return row, {"id": row["session_member_id"], "nickname": row["session_nickname"]}
+    room = room_row(con, room_id, lock=lock)
     member = session_member(con, room_id, request)
     if member is None:
         raise HTTPException(401, "ルームに名前で参加してから入力してください")
@@ -111,7 +122,7 @@ def create_room(body: RoomCreate, response: Response):
 @router.get("/api/rooms/{room_id}")
 def get_room(room_id: RoomId):
     with connection() as con:
-        return room_payload(room_row(con, room_id))
+        return room_payload(room_row(con, room_id, lock=False))
 
 
 @router.get("/api/rooms/{room_id}/me")

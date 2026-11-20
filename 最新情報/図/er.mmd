@@ -1,0 +1,79 @@
+erDiagram
+direction LR
+consultations ||--o{ consultationMembers : "参加"
+consultations ||--o| selectionState : "段階と決定"
+consultationMembers ||--o{ memberSessions : "本人照合"
+consultationMembers ||--o{ selectionSubmitters : "下書き管理"
+selectionSubmitters ||--o{ selectionProposals : "非公開下書き"
+selectionSubmitters ||--o{ publishedProposals : "公開候補"
+consultationMembers ||--o{ roomComments : "入室コメント"
+consultationMembers ||--o{ selectionVotes : "匿名評価"
+consultations ||--o| selectionImports : "旧データ移行"
+products ||--o{ productScenes : "シーン"
+consultations {
+int id PK
+int organizer_id
+int budget_total
+date deliver_by
+}
+consultationMembers["consultation_members"] {
+int id PK
+int consultation_id FK
+string nickname
+}
+selectionState["selection_state"] {
+int room_id PK,FK
+string phase
+json decision
+}
+memberSessions["consultation_member_sessions"] {
+string token_hash PK
+int room_id FK
+int member_id FK
+bigint expires_at
+}
+selectionSubmitters["selection_submitters"] {
+int room_id PK,FK
+int member_id PK,FK
+int version
+int submitted
+}
+selectionProposals["selection_proposals"] {
+int room_id PK,FK
+int member_id PK,FK
+string product_id PK
+json gift
+}
+publishedProposals["selection_published_proposals"] {
+int room_id PK,FK
+int member_id PK,FK
+string product_id PK
+int curated
+json gift
+}
+roomComments["selection_room_comments"] {
+bigint id PK
+int room_id FK
+int member_id FK
+string kind
+string text
+}
+selectionVotes["selection_votes"] {
+int room_id PK,FK
+int member_id PK,FK
+string product_id PK
+int stars
+}
+selectionImports["selection_imports"] {
+string source_key PK
+int old_room_id PK
+int new_room_id FK
+json member_map
+}
+products {
+string product_id PK
+}
+productScenes["product_scenes"] {
+string product_id FK
+string scene_tag
+}

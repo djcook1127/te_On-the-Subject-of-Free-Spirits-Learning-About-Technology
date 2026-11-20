@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant user as 主催者
+    participant screen as 共同決定画面 SelectionWorkspace.tsx
+    participant client as 通信係 lib/selection.ts
+    participant api as API受付 selection_rooms.py
+    participant db as 共通DB
+    user->>screen: 入口からselectを開く
+    screen->>client: 状態取得を依頼
+    client->>api: GET selection・本人Cookie
+    api->>db: 本人・段階・候補・情報を取得
+    api->>screen: 入室コメントフォームを表示
+    user->>screen: コメントして入室
+    client->>api: POST selection/comments
+    api->>db: 分類付きコメントを保存
+    api->>client: 成功と最新selectionを返す
+    client->>screen: 応答を表示・entered=true
+    screen->>user: 候補提出へ切替
