@@ -217,9 +217,9 @@ def selection_records(con, room_id, member_id, organizer, phase):
         "members": rows("SELECT id,nickname FROM consultation_members WHERE consultation_id=%s", (room_id,)) if organizer else [],
         "totals": rows("SELECT product_id,SUM(stars) AS total,COUNT(*) AS voters FROM selection_votes WHERE room_id=%s GROUP BY product_id", (room_id,)) if phase != "collecting" else [],
         "own_votes": rows("SELECT product_id,stars FROM selection_votes WHERE room_id=%s AND member_id=%s", (room_id, member_id)) if phase != "collecting" else [],
-        "old_notes": rows("SELECT id,kind,text FROM selection_notes WHERE room_id=%s", (room_id,)) if phase != "voting" else [],
-        "old_comments": rows("SELECT id,product_id,text FROM selection_comments WHERE room_id=%s", (room_id,)) if phase != "voting" else [],
-        "room_comments": rows("SELECT id,kind,text FROM selection_room_comments WHERE room_id=%s", (room_id,)) if phase != "voting" else [],
+        "old_notes": rows("SELECT id,kind,text FROM selection_notes WHERE room_id=%s", (room_id,)),
+        "old_comments": rows("SELECT id,product_id,text FROM selection_comments WHERE room_id=%s", (room_id,)),
+        "room_comments": rows("SELECT id,kind,text FROM selection_room_comments WHERE room_id=%s", (room_id,)),
     }
 
 
@@ -251,7 +251,7 @@ def selection_payload(con, room_id, request, context_data=None):
             "progress": {"designated": len(members), "submitted": submitted, "candidateCount": len(shared), "candidateLimit": 10},
             "notes": notes if state["phase"] != "voting" else [],
             "ownProducts": [{"productId": r["product_id"], "reason": r["reason"], "gift": json.loads(r["gift"])} for r in personal],
-            "candidates": visible, "comments": comments if state["phase"] != "voting" else [], "decision": json.loads(state["decision"]) if state["decision"] else None}
+            "candidates": visible, "comments": comments, "decision": json.loads(state["decision"]) if state["decision"] else None}
 
 @app.put("/api/rooms/{room_id}/selection/room")
 def edit_room(room_id: RoomId, body: RoomSettings, request: Request):
