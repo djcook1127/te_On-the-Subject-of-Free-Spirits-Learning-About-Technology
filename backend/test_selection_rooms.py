@@ -244,12 +244,12 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(self.host.post(self.base + "/curation", json={"replaceProductId": "TEST-002", "productId": "unknown"}).status_code, 400)
         self.assertIn("TEST-002", {c["gift"]["id"] for c in self.state()["candidates"]})
 
-    def test_comments_have_types_and_are_closed_and_hidden_during_voting(self):
+    def test_comments_are_readable_but_posting_is_closed_during_voting(self):
         response = self.clients[6].post(self.base + "/comments", json={"kind": "避けたいもの", "text": "強い香りは苦手と本人から聞いた"})
         self.assertEqual(response.status_code, 201)
         self.assertEqual(self.state()["comments"][0]["kind"], "避けたいもの")
         self.voting()
-        self.assertEqual(self.state()["comments"], [])
+        self.assertEqual(self.state(self.clients[1])["comments"], response.json()["selection"]["comments"])
         self.assertEqual(self.state()["notes"], [])
         self.assertEqual(self.clients[6].post(self.base + "/comments", json={"kind": "好み", "text": "変更"}).status_code, 409)
         self.assertEqual(self.clients[6].post(self.base + "/notes", json={"kind": "好み", "text": "変更"}).status_code, 409)
@@ -333,12 +333,14 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(comment["comments"][0]["text"], "コーヒー")
         start = self.host.post(self.base + "/start-voting").json()["selection"]
         self.assertEqual(start["phase"], "voting")
-        self.assertEqual(start["comments"], [])
+        self.assertEqual(start["comments"], comment["comments"])
         vote = self.clients[1].put(self.base + "/products/TEST-001/vote", json={"stars": 3}).json()["selection"]
         self.assertEqual(vote["candidates"][0]["myStars"], 3)
         self.assertEqual(vote["candidates"][0]["totalStars"], 3)
+        self.assertEqual(vote["comments"], comment["comments"])
         decision = self.host.post(self.base + "/decision", json={"mode": "single", "productIds": ["TEST-001"], "reasonSources": ["votes"]}).json()["selection"]
         self.assertEqual(decision["phase"], "decided")
+        self.assertEqual(decision["comments"], comment["comments"])
         self.assertEqual(decision["decision"]["products"][0]["id"], "TEST-001")
 
     def test_concurrent_votes_are_not_lost(self):

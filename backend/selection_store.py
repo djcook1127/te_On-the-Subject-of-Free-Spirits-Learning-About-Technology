@@ -91,9 +91,9 @@ class MySQLStore:
         columns.append("""COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('product_id',v.product_id,'total',v.total,'voters',v.voters))
             FROM (SELECT product_id,SUM(stars) AS total,COUNT(*) AS voters FROM selection_votes WHERE room_id=%s AND %s GROUP BY product_id) v),JSON_ARRAY()) AS totals""")
         params.extend((room_id, phase != 'collecting'))
-        array('old_notes', 'selection_notes', ['id', 'kind', 'text'], 'room_id=%s AND %s', (room_id, phase != 'voting'))
-        array('old_comments', 'selection_comments', ['id', 'product_id', 'text'], 'room_id=%s AND %s', (room_id, phase != 'voting'))
-        array('room_comments', 'selection_room_comments', ['id', 'kind', 'text'], 'room_id=%s AND %s', (room_id, phase != 'voting'))
+        array('old_notes', 'selection_notes', ['id', 'kind', 'text'], 'room_id=%s', (room_id,))
+        array('old_comments', 'selection_comments', ['id', 'product_id', 'text'], 'room_id=%s', (room_id,))
+        array('room_comments', 'selection_room_comments', ['id', 'kind', 'text'], 'room_id=%s', (room_id,))
         row = self.execute('SELECT '+','.join(columns), tuple(params)).fetchone()
         result = {key: json.loads(value) if isinstance(value, (str, bytes)) else value for key, value in row.items()}
         # MySQL JSON列は入れ子のobjectになる。既存SQLiteと同じgift文字列へそろえる。
