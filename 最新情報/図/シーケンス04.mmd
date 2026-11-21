@@ -1,0 +1,17 @@
+sequenceDiagram
+    autonumber
+    participant user as 主催者・参加者
+    participant screen as 比較・評価画面 SelectionWorkspace.tsx
+    participant client as 通信係 lib/selection.ts
+    participant api as API受付 selection_rooms.py
+    participant db as 共通DB
+    user->>screen: 主催者が投票開始を押す
+    client->>api: POST start-voting
+    api->>db: 主催者・候補数を確認してvotingへ
+    api->>screen: 最新状態を返し比較表示へ
+    user->>screen: 星3を押す
+    screen->>screen: 星を先に仮表示・保存中を表示
+    client->>api: PUT products/商品ID/vote
+    api->>db: 共有ロックで段階確認・評価更新
+    api->>client: 成功と最新selectionを返す
+    client->>screen: サーバーの値で確定・失敗なら元へ戻す

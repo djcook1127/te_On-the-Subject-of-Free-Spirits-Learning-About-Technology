@@ -1,4 +1,6 @@
 -- 最初のPoC：ルームと幹事の保存。既存productsは変更しない。
+-- 共同決定の追加8テーブルは db/migrations/002_shared_selection.sql を別途適用する。
+-- 最新仕様は続けて003、004、005_organizer_first.sqlを適用する（管理スクリプト利用）。
 -- 2026-11-15のローカルPoC実行時に、許可を受けて班の開発DBへ適用済み。
 -- IF NOT EXISTSは既存テーブルの列を更新しない。DROPして作り直さないこと。
 CREATE TABLE IF NOT EXISTS consultations (

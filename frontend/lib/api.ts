@@ -24,7 +24,7 @@ export type SearchCondition = {
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // 入力した条件をサーバー（FastAPI）に送り、結果（Gift の配列）をもらう
-export async function searchGifts(c: SearchCondition): Promise<Gift[]> {
+export async function searchGifts(c: SearchCondition, signal?: AbortSignal): Promise<Gift[]> {
   // ① 条件を URL のクエリ（?q=...&category=...）に組み立てる。空の条件は送らない
   const params = new URLSearchParams();
   if (c.keyword) params.set("q", c.keyword);
@@ -34,7 +34,7 @@ export async function searchGifts(c: SearchCondition): Promise<Gift[]> {
   if (c.priceBand === "5000") { params.set("price_min", "5000"); params.set("price_max", "9999"); } // 5,000以上 10,000未満
 
   // ② fetch で API を呼ぶ（通信が終わるまで待つ＝await）
-  const res = await fetch(`${API}/api/search?${params.toString()}`);
+  const res = await fetch(`${API}/api/search?${params.toString()}`, { signal });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   // ③ 返ってきた JSON を読む。{ total, results } の results が Gift の配列

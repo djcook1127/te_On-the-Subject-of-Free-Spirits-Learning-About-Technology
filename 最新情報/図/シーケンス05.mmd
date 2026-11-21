@@ -1,0 +1,14 @@
+sequenceDiagram
+    autonumber
+    participant user as 主催者
+    participant screen as 集計画面 SelectionWorkspace.tsx
+    participant client as 通信係 lib/selection.ts
+    participant api as API受付 selection_rooms.py
+    participant db as 共通DB
+    user->>screen: 集計を見るを押す
+    screen->>screen: tab=resultsへ切替・新しいURLには移らない
+    user->>screen: 単品・商品・理由を選ぶ
+    screen->>screen: mode・picked・reasonSourcesを更新
+    user->>screen: デモの購入確認へを押す
+    screen->>screen: confirming=true・確認内容を表示
+    screen->>user: この内容で決定しますかと表示

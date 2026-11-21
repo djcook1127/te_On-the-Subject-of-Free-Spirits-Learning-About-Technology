@@ -56,6 +56,17 @@ class SharedCatalogTest(unittest.TestCase):
         self.assertEqual(SharedProductCatalog().get_many([]), {})
         self.connection.cursor.assert_not_called()
 
+    def test_categories_come_from_budgeted_in_stock_farewell_products(self):
+        self.cursor.fetchall.return_value = [{"category": "食品"}, {"category": "生活雑貨"}]
+        self.assertEqual(SharedProductCatalog().categories(6000), ["食品", "生活雑貨"])
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn("SELECT DISTINCT p.category", sql)
+        self.assertIn("p.stock>0", sql)
+        self.assertIn("product_scenes", sql)
+        self.assertEqual(params, (4800, 6000, "送別"))
+        self.connection.commit.assert_not_called()
+        self.connection.rollback.assert_called_once()
+
     def test_query_failure_is_sanitized_and_transaction_closed(self):
         self.cursor.execute.side_effect = RuntimeError("do-not-expose-connection-details")
         with self.assertRaises(HTTPException) as raised:

@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant user as 主催者
+    participant screen as 確認・決定画面 SelectionWorkspace.tsx
+    participant client as 通信係 lib/selection.ts
+    participant api as API受付 selection_rooms.py
+    participant db as 共通DB
+    user->>screen: この内容で決定・保存する
+    client->>api: POST selection/decision
+    api->>api: 主催者・段階・理由を確認
+    api->>db: 候補・在庫・予算を確認
+    api->>db: 商品と理由を保存・decidedへ
+    api->>client: 成功と最新selectionを返す
+    client->>screen: このルームでの決定商品を表示
+    user->>screen: 後日同じURLを開く
+    client->>api: GET selection・Cookieを添える
+    api->>db: 保存した決定を取得
+    api->>screen: 決定商品と理由を返す

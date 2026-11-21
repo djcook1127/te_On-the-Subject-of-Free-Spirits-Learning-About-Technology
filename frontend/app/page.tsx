@@ -7,6 +7,7 @@ import Link from "next/link";
 import ResultCard from "./ResultCard";
 import FarewellFavoriteButton from "./components/FarewellFavoriteButton";
 import favoriteStyles from "./components/farewellFavorites.module.css";
+import promotionStyles from "./components/roomPromotion.module.css";
 import { searchGifts, type Gift } from "@/lib/api";
 
 export default function Home() {
@@ -45,6 +46,10 @@ export default function Home() {
   return (
     <main className="page">
       <header className="header"><h1>Giftia</h1><Link href="/rooms/new">ルームを作る</Link></header>
+      <section className={promotionStyles.banner} aria-label="送別ルームのご案内">
+        <div><p className={promotionStyles.eyebrow}>職場の送別ギフトに</p><h2>ひとりで迷わず、みんなで決める。</h2><p className={promotionStyles.description}>候補を持ち寄って、匿名で相談・投票。<br />贈りものを一緒に選ぶ「送別ルーム」が作れます。</p></div>
+        <Link href="/rooms/new" className={promotionStyles.action}>送別ルームを作る <span aria-hidden="true">→</span></Link>
+      </section>
       <div className={favoriteStyles.bar}>
         <Link href="/favorites/farewell" className={favoriteStyles.link}>♡ 送別用のお気に入りを見る</Link>
         <span className={favoriteStyles.note}>このブラウザーに保存し、ルームで候補として選べます。</span>

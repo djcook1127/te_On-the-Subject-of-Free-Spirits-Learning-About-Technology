@@ -21,6 +21,9 @@ Issueが作成できない場合は、理由と起票用本文を残す。この
 
 | 日付 | 作業 | 状態 |
 |---|---|---|
+| 2026-11-21 | [操作改善・ルーム編集・開設者の初回提案](2026-11-21-room-feedback.md) | Issue #26。通常79件・MySQL最終4件・フロント13件、lint/build。先行#25と引継ぎ資料も同ブランチで整理 |
+| 2026-11-20 | [共同決定の保存先を共通MySQLへ統合](2026-11-20-shared-storage.md) | #22-1（#24）。既存ルーム・参加者を再利用、追加8テーブル。適用・検証・反映状況は個別記録を参照 |
+| 2026-11-20 | [提案・匿名評価・共同決定](2026-11-20-shared-selection.md) | Issue #22。最大5人×3品、匿名評価・コメント、単品／カタログ決定と履歴。反映状況は個別記録を参照 |
 | 2026-11-15 | [既存検索の穴埋め・起動ファイルの復元](2026-11-15-search-starter.md) | [Issue #8](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/issues/8)・[PR #9](https://github.com/djcook1127/te_On-the-Subject-of-Free-Spirits-Learning-About-Technology/pull/9)、コミット・push済み、レビュー待ち |
 | 2026-11-15 | [GitHub Issue連携の403を調査しCLIで接続](2026-11-15-github-connection.md) | CLI認証・WRITE権限・Issue作成と読み戻しを確認済み。アプリ側の権限設定は未変更 |
 | 2026-11-15 | [候補ストックと手掛かり入力](2026-11-15-candidate-stock.md) | Issue #12・Draft PR #13。複数タブでの後続確認は下記のお気に入り追加記録を参照 |

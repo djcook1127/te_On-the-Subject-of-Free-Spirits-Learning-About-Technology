@@ -6,7 +6,7 @@ export const holidays: Record<string, string> = calendar.holidays;
 export const supportedYears = calendar.supported_years;
 export const calendarSource = calendar.source;
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const localRoomsEnabled = process.env.NEXT_PUBLIC_LOCAL_ROOMS === "1";
+const localRoomsEnabled = process.env.NEXT_PUBLIC_LOCAL_ROOMS === "1" || process.env.NEXT_PUBLIC_SELECTION_ROOMS === "1";
 
 // 作成するときに、画面からAPIへ送る情報。
 export type RoomInput = {
@@ -29,6 +29,8 @@ export type Room = {
   price_per_person: number;
   room_path: string;
   local_preview?: boolean;
+  selection_enabled?: boolean;
+  storage_source?: "shared";
 };
 
 export function japanToday(): string {

@@ -1,0 +1,11 @@
+flowchart LR
+  top["検索トップ・app/page.tsx"] --> create["ルーム作成・rooms/new/page.tsx"]
+  create -->|"rooms.ts POST rooms"| door["ルーム入口・rooms/ID/page.tsx"]
+  door --> workspace["共同決定・select/SelectionWorkspace.tsx"]
+  workspace --> join["名前参加・localParticipation.ts"]
+  join -->|"shared_rooms.py・members"| entry["入室コメント・好み／避けたいもの／その他"]
+  entry -->|"selection.ts・comments"| proposal["商品候補・検索／お気に入り／おまかせ"]
+  proposal -->|"proposal・submit"| adjust["主催者が公開候補を調整"]
+  adjust -->|"start-voting・phase変更"| vote["星1から3で投票"]
+  vote -->|"vote・selection_votes"| results["集計・贈り方と理由を選択"]
+  results -->|"decision・selection_state"| decided["デモ決定保存・後日再閲覧"]

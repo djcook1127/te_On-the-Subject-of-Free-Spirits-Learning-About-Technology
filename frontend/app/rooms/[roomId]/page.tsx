@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { displayDate, getRoom, type Room } from "@/lib/rooms";
 import RoomShell from "../RoomShell";
 import RoomParticipation from "../RoomParticipation";
+import { restoreImportedRoom } from "@/lib/selection";
 
 export default function RoomPage() {
   // ① URLの番号と、画面が現在覚えている情報を用意する。
@@ -22,6 +23,11 @@ export default function RoomPage() {
 
     async function loadRoom() {
       try {
+        if (process.env.NEXT_PUBLIC_SELECTION_ROOMS === "1" && new URLSearchParams(window.location.search).get("legacy") === "1") {
+          const importedPath = await restoreImportedRoom(roomId);
+          if (controller.signal.aborted) return;
+          if (importedPath) { window.location.replace(importedPath); return; }
+        }
         // getRoomは「取得」。取得が終わってから、setRoomで画面の状態を更新する。
         const roomData = await getRoom(roomId, controller.signal);
         setRoom(roomData);
@@ -122,7 +128,9 @@ export default function RoomPage() {
         </div>
       </section>
 
-      {room.local_preview && <RoomParticipation key={roomId} roomId={roomId} />}
+      {(room.local_preview || room.selection_enabled) && (process.env.NEXT_PUBLIC_SELECTION_ROOMS === "1" ?
+        <section className="room-panel room-saved"><div><h2>みんなで候補を持ち寄ろう</h2><p>開設者が最初の候補を提出し、その後に参加者も追加できます。ルーム全体で最大10品を集め、主催者の投票開始後に★評価します。</p><Link href={`/rooms/${encodeURIComponent(roomId)}/select`} className="room-button">提案・比較・決定へ →</Link><p>主催者は共同決定画面の「ルーム情報を編集」から、投票開始前に設定を修正できます。</p></div></section>
+        : <RoomParticipation key={roomId} roomId={roomId} />)}
 
       <div className="room-bottom-grid">
         <section className="room-panel room-url-panel">

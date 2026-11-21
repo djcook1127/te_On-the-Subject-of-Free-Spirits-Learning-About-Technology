@@ -38,14 +38,13 @@ def validate_deadline(value: date, today: date | None = None) -> date:
     return value
 
 
-class RoomCreate(BaseModel):
+class RoomSettings(BaseModel):
     """画面から受け取る入力と、その入力が守る条件。"""
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     title: str = Field(min_length=1, max_length=100)
     budget_total: int = Field(strict=True, ge=1, le=2147483647)
     member_count: int = Field(strict=True, ge=1, le=2147483647)
     deliver_by: date
-    nickname: str = Field(min_length=1, max_length=30)
 
     @field_validator("deliver_by", mode="before")
     @classmethod
@@ -70,3 +69,7 @@ class RoomCreate(BaseModel):
     @classmethod
     def business_day(cls, value: date) -> date:
         return validate_deadline(value)
+
+
+class RoomCreate(RoomSettings):
+    nickname: str = Field(min_length=1, max_length=30)

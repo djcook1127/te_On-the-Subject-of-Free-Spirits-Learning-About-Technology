@@ -45,6 +45,9 @@ PRODUCT_BY_ID = {p["id"]: p for p in PRODUCTS}
 class DemoProductCatalog:
     source = "demo"
 
+    def categories(self, budget):
+        return sorted({p["category"] for p in PRODUCTS if (budget * 8 + 9) // 10 <= p["price"] <= budget and p["rating"] >= 4})
+
     def search(self, q, category, indiv_wrap, price_min, price_max, limit):
         result = [p for p in PRODUCTS if
                   all(word.lower() in f"{p['name']} {p['brand']} {p['category']}".lower() for word in q.split())

@@ -121,7 +121,7 @@ def room_payload(row):
             "room_path": f'/rooms/{row["id"]}', "local_preview": True}
 
 
-def own_member(con, room_id, request):
+def own_member(con, room_id, request, lock=True):
     room = room_row(con, room_id)
     member = session_member(con, room_id, request)
     if member is None:

@@ -7,8 +7,8 @@ from fastapi import HTTPException
 
 def _connect():
     # テスト・固定商品モードでは接続設定を読まず、必要な場合だけ既存接続を利用する。
-    from database import get_connection
-    return get_connection()
+    from connection_pool import pool
+    return pool.acquire()
 
 
 @contextmanager
@@ -48,6 +48,14 @@ PROJECTION = "product_id, category, brand, product_name, price, rating, review_c
 
 class SharedProductCatalog:
     source = "shared"
+
+    def categories(self, budget):
+        with read_only_cursor() as cursor:
+            cursor.execute("""SELECT DISTINCT p.category FROM products p
+                WHERE p.stock>0 AND p.price>=%s AND p.price<=%s AND p.rating>=4.0 AND p.category<>''
+                  AND EXISTS (SELECT 1 FROM product_scenes s WHERE s.product_id=p.product_id AND s.scene_tag=%s)
+                ORDER BY p.category""", ((budget * 8 + 9) // 10, budget, "送別"))
+            return [row["category"] for row in cursor.fetchall()]
 
     def search(self, q, category, indiv_wrap, price_min, price_max, limit):
         # 既存main.pyの検索条件と並び順を維持。推薦用の新しい絞り込みではない。

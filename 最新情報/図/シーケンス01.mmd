@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    participant user as 利用者
+    participant screen as 作成画面 rooms/new/page.tsx
+    participant client as 通信係 lib/rooms.ts
+    participant api as API受付 shared_rooms.py
+    participant db as 共通DB
+    user->>screen: 作成ボタンを押す
+    screen->>client: createRoomで入力を渡す
+    client->>api: POST /api/rooms
+    api->>api: RoomCreateで日付・数値等を検査
+    api->>db: ルーム・主催者・段階・セッションを保存
+    db->>api: まとめて保存成功
+    api->>client: 新ルームURLと本人Cookieを返す
+    client->>screen: 作成結果を渡す
+    screen->>user: /rooms/34へ移動
