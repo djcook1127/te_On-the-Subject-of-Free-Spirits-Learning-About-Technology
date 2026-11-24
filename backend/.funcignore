@@ -1,0 +1,10 @@
+.env
+.env.*
+.venv/
+local.settings.json
+__pycache__/
+test_*.py
+manage_shared_storage.py
+package_function.py
+*.db
+*.sqlite3

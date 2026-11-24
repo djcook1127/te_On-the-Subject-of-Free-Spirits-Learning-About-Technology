@@ -54,8 +54,11 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(created.status_code, 201)
         self.base = f'/api/rooms/{created.json()["room_id"]}/selection'
         for i, client in enumerate(self.clients[1:]):
-            self.assertEqual(client.post(self.base.replace("/selection", "/members"), json={"nickname": f"参加者ダミー{i}"}).status_code, 201)
+            self.join_participant(client, f"参加者ダミー{i}")
         self.ids = [m["id"] for m in self.state()["members"]]
+
+    def join_participant(self, client, nickname):
+        self.assertEqual(client.post(self.base.replace("/selection", "/members"), json={"nickname": nickname}).status_code, 201)
 
     def state(self, client=None):
         response = (client or self.host).get(self.base)

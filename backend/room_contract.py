@@ -7,8 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 JST = timezone(timedelta(hours=9))
 
 # ① 画面と共通の祝日ファイルを読み込む。
-project_folder = Path(__file__).resolve().parent.parent
-calendar_file = project_folder / "shared/japan-holidays.json"
+module_folder = Path(__file__).resolve().parent
+calendar_file = module_folder / "shared/japan-holidays.json"
+if not calendar_file.is_file():
+    calendar_file = module_folder.parent / "shared/japan-holidays.json"
 calendar_text = calendar_file.read_text(encoding="utf-8")
 CALENDAR = json.loads(calendar_text)
 

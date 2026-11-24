@@ -194,7 +194,12 @@ export default function SelectionWorkspace({ roomId }: { roomId: string }) {
     <div className="room-page-intro"><p className="room-eyebrow">みんなで選ぶ送別ギフト</p><h1>{data?.room.title ?? "ギフトを一緒に決めよう"}</h1></div>
     {error && <p className="room-error" role="alert">{error} <button disabled={busy} onClick={() => run(async () => { await reload(); })}>最新の状況を確認</button> <a href={`/rooms/${encodeURIComponent(roomId)}/select?legacy=1`}>以前のルームを引き継ぐ</a></p>}
     <p role="status" className={styles.notice}>{notice}</p>
-    {joining && <form className="room-panel" onSubmit={event => { event.preventDefault(); run(async () => { await joinLocalRoom(roomId, nickname.trim()); await reload(true); }); }}>
+    {joining && <form className="room-panel" onSubmit={event => { event.preventDefault(); run(async () => {
+      const invite = new URLSearchParams(window.location.hash.slice(1)).get("invite");
+      await joinLocalRoom(roomId, nickname.trim(), invite ?? undefined);
+      if (invite) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      await reload(true);
+    }); }}>
       <h2>名前を入力して参加する</h2><p>表示用のニックネームです。投票・コメントに名前は表示されません。</p>
       <label>ニックネーム<input value={nickname} onChange={e => setNickname(e.target.value)} maxLength={30} required /></label>
       <button className="room-button" disabled={busy || !nickname.trim()}>参加する</button><p><a href={`/rooms/${encodeURIComponent(roomId)}/select?legacy=1`}>以前のルームを引き継ぐ</a></p></form>}
