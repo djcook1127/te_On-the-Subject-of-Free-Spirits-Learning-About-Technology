@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { displayDate, getRoom, type Room } from "@/lib/rooms";
+import { displayDate, getRoom, updateRoomInvite, type Room } from "@/lib/rooms";
 import RoomShell from "../RoomShell";
 import RoomParticipation from "../RoomParticipation";
 import { restoreImportedRoom } from "@/lib/selection";
@@ -15,6 +15,9 @@ export default function RoomPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState("");
+  const [invite, setInvite] = useState<{ roomId: string; url: string } | null>(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const inviteUrl = invite?.roomId === roomId ? invite.url : "";
 
   // ② 画面を表示したとき、またはURLの番号が変わったときに取得する。
   useEffect(() => {
@@ -55,10 +58,26 @@ export default function RoomPage() {
   // ③ URLのコピーボタンが押されたときの処理。
   async function copyUrl() {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(inviteUrl || window.location.href);
       setCopied("URLをコピーしました");
     } catch {
-      setCopied("コピーできませんでした。ブラウザのアドレス欄からコピーしてください。");
+      setCopied(inviteUrl ? "コピーできませんでした。表示されている招待リンクを選択してください。" : "コピーできませんでした。ブラウザーのアドレス欄からコピーしてください。");
+    }
+  }
+
+  async function changeInvite(method: "POST" | "DELETE") {
+    setInviteBusy(true);
+    setCopied("");
+    try {
+      const token = await updateRoomInvite(roomId, method);
+      const url = new URL(`/rooms/${encodeURIComponent(roomId)}/select`, window.location.origin);
+      if (token) url.hash = new URLSearchParams({ invite: token }).toString();
+      setInvite(token ? { roomId, url: url.href } : null);
+      setCopied(token ? "7日間有効なリンクを発行しました。" : "招待リンクを無効にしました。");
+    } catch (error) {
+      setCopied(error instanceof Error ? error.message : "招待リンクを更新できませんでした。");
+    } finally {
+      setInviteBusy(false);
     }
   }
 
@@ -133,9 +152,18 @@ export default function RoomPage() {
         : <RoomParticipation key={roomId} roomId={roomId} />)}
 
       <div className="room-bottom-grid">
-        <section className="room-panel room-url-panel">
+        {(room.storage_source !== "shared" || room.is_organizer) && <section className="room-panel room-url-panel">
           <p className="room-eyebrow">ROOM URL</p>
-          <h2>ルームのURLを控える</h2>
+          <h2>{room.storage_source === "shared" ? "参加者への招待リンク" : "ルームのURLを控える"}</h2>
+          {room.storage_source === "shared" ? <>
+            <p>発行から7日間使えます。再発行すると以前のリンクは無効になります。</p>
+            <button type="button" className="room-button room-button-small" disabled={inviteBusy} onClick={() => void changeInvite("POST")}>発行・再発行</button>{" "}
+            <button type="button" className="room-button room-button-small" disabled={inviteBusy} onClick={() => void changeInvite("DELETE")}>無効にする</button>
+            {inviteUrl && <div className="room-url-row">
+              <input aria-label="招待リンク" value={inviteUrl} readOnly />
+              <button type="button" className="room-button room-button-small" disabled={inviteBusy} onClick={copyUrl}>リンクをコピー</button>
+            </div>}
+          </> : <>
           <p>再び開くときは、このページのURLを使ってください。</p>
           <div className="room-url-row">
             <code>{room.room_path}</code>
@@ -143,8 +171,9 @@ export default function RoomPage() {
               URLをコピー
             </button>
           </div>
+          </>}
           <p className="room-help" role="status">{copied}</p>
-        </section>
+        </section>}
         <section className="room-dark-panel room-next">
           <p className="room-eyebrow">GIFT SELECTION</p>
           <h2>どんな贈りものに<br />しよう？</h2>

@@ -1,0 +1,14 @@
+.env
+.env.*
+.venv/
+local.settings.json
+__pycache__/
+.pytest_cache/
+tests/
+tools/
+test_*.py
+requirements-dev.txt
+manage_shared_storage.py
+package_function.py
+*.db
+*.sqlite3

@@ -24,7 +24,7 @@ rooms = shared_rooms if storage_mode == "shared" else local_rooms
 
 app = FastAPI(title="Giftia みんなで決める送別ギフト")
 app.add_middleware(CORSMiddleware, allow_origins=rooms.ORIGINS, allow_credentials=True,
-                   allow_methods=["GET", "POST", "PUT"], allow_headers=["Content-Type"])
+                   allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Content-Type"])
 app.middleware("http")(rooms.local_origin_only)
 app.add_exception_handler(sqlite3.Error, local_rooms.storage_error)
 RoomId = rooms.RoomId

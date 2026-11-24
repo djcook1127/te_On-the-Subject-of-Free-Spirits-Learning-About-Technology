@@ -31,6 +31,7 @@ export type Room = {
   local_preview?: boolean;
   selection_enabled?: boolean;
   storage_source?: "shared";
+  is_organizer?: boolean;
 };
 
 export function japanToday(): string {
@@ -155,6 +156,7 @@ export async function getRoom(id: string, signal?: AbortSignal): Promise<Room> {
     const response = await fetch(url, {
       cache: "no-store",
       signal: signal,
+      credentials: localRoomsEnabled ? "include" : "omit",
     });
 
     // ③ 本文を読み取り、取得したルーム情報を返す。
@@ -166,4 +168,15 @@ export async function getRoom(id: string, signal?: AbortSignal): Promise<Room> {
     }
     throw error;
   }
+}
+
+export async function updateRoomInvite(roomId: string, method: "POST" | "DELETE") {
+  const response = await fetch(`${API}/api/rooms/${encodeURIComponent(roomId)}/invite`, {
+    method, credentials: "include", cache: "no-store",
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new Error(typeof error?.detail === "string" ? error.detail : "招待リンクを更新できませんでした。");
+  }
+  return method === "POST" ? (await response.json() as { token: string }).token : null;
 }

@@ -8,11 +8,69 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pymysql
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
 
 import manage_shared_storage as migration
 import shared_rooms
 from selection_store import MySQLStore, SQLiteStore
+
+
+class InviteTests(unittest.TestCase):
+    def test_token_is_hashed_and_validation_checks_room_and_expiry(self):
+        con = MagicMock()
+        token = "a" * 43
+        with patch.object(shared_rooms, "connection") as connect, patch.object(shared_rooms, "require_organizer"), patch.object(shared_rooms.secrets, "token_urlsafe", return_value=token):
+            connect.return_value.__enter__.return_value = con
+            self.assertEqual(shared_rooms.rotate_invite(7, MagicMock())["token"], token)
+        _, params = con.execute.call_args.args
+        self.assertNotIn(token, params)
+        self.assertEqual(params[0], 7)
+        self.assertEqual(len(params[1]), 64)
+        con.execute.return_value.fetchone.return_value = None
+        with self.assertRaises(HTTPException) as expired:
+            shared_rooms.require_invite(con, 7, token)
+        self.assertEqual(expired.exception.status_code, 403)
+        sql, lookup = con.execute.call_args.args
+        self.assertIn("expires_at>UNIX_TIMESTAMP()", sql)
+        self.assertEqual(lookup, (7, params[1]))
+        con.execute.return_value.fetchone.return_value = {"valid": 1}
+        shared_rooms.require_invite(con, 7, token)
+
+    def test_missing_invite_does_not_reach_database(self):
+        con = MagicMock()
+        with self.assertRaises(HTTPException) as missing:
+            shared_rooms.require_invite(con, 7, None)
+        self.assertEqual(missing.exception.status_code, 403)
+        con.execute.assert_not_called()
+
+    def test_http_join_sets_secure_cookie_only_after_invitation(self):
+        api = FastAPI()
+        api.include_router(shared_rooms.router)
+        con = MagicMock()
+        con.execute.return_value.lastrowid = 12
+        token = "b" * 43
+        with (
+            TestClient(api, base_url="https://testserver") as browser,
+            patch.object(shared_rooms, "connection") as connect,
+            patch.object(shared_rooms, "room_row"),
+            patch.object(shared_rooms, "session_member", return_value=None),
+            patch.dict("os.environ", {"GIFTIA_SECURE_COOKIES": "1"}),
+        ):
+            connect.return_value.__enter__.return_value = con
+            missing = browser.post("/api/rooms/7/members", json={"nickname": "ゲスト"})
+            self.assertEqual(missing.status_code, 403)
+            self.assertNotIn("set-cookie", missing.headers)
+            con.execute.return_value.fetchone.return_value = None
+            invalid = browser.post("/api/rooms/7/members", json={"nickname": "ゲスト", "invite_token": token})
+            self.assertEqual(invalid.status_code, 403)
+            self.assertNotIn("set-cookie", invalid.headers)
+            con.execute.return_value.fetchone.return_value = {"valid": 1}
+            valid = browser.post("/api/rooms/7/members", json={"nickname": "ゲスト", "invite_token": token})
+            self.assertEqual(valid.status_code, 201)
+            cookie = valid.headers["set-cookie"]
+            for attribute in ("Secure", "HttpOnly", "Path=/api/rooms/7", "SameSite=strict"):
+                self.assertIn(attribute, cookie)
 
 
 class StoreTests(unittest.TestCase):

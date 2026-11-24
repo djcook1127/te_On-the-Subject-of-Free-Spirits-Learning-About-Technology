@@ -14,6 +14,7 @@ from shared_rooms import _connect, connection
 MIGRATION = Path(__file__).resolve().parent.parent / "db/migrations/002_shared_selection.sql"
 OPEN_MIGRATION = MIGRATION.with_name("003_open_proposals.sql")
 ENTRY_MIGRATION = MIGRATION.with_name("004_entry_comment_curation.sql")
+INVITE_MIGRATION = MIGRATION.with_name("006_room_invites.sql")
 EXPECTED = {
     "selection_state": {"room_id", "phase", "decision"},
     "selection_submitters": {"room_id", "member_id", "submitted", "version"},
@@ -90,6 +91,24 @@ def apply_open_schema():
                 raise ValueError("公開候補用テーブルの確認に失敗しました")
         raw.commit()
         return {"createdTables": sorted(OPEN_EXPECTED.keys() - existing), "verifiedTables": sorted(OPEN_EXPECTED), "legacyPublishedPreserved": True}
+    finally:
+        raw.close()
+
+
+def apply_invite_schema():
+    statement = re.sub(r"--[^\n]*", "", INVITE_MIGRATION.read_text(encoding="utf-8")).strip()
+    if not statement.startswith("CREATE TABLE IF NOT EXISTS consultation_invites ") or statement.count(";") != 1:
+        raise ValueError("招待テーブルのSQL定義を確認してください")
+    raw = _connect()
+    try:
+        with raw.cursor() as cursor:
+            preflight(cursor)
+            cursor.execute(statement)
+            cursor.execute("SHOW COLUMNS FROM consultation_invites")
+            if not {"room_id", "token_hash", "expires_at"} <= {row["Field"] for row in cursor.fetchall()}:
+                raise ValueError("招待テーブルの列定義が想定と異なります")
+        raw.commit()
+        return {"verifiedTables": ["consultation_invites"]}
     finally:
         raw.close()
 
@@ -210,13 +229,14 @@ def main():
     subparsers.add_parser("apply-open-proposals")
     subparsers.add_parser("apply-entry-workflow")
     subparsers.add_parser("apply-organizer-first")
+    subparsers.add_parser("apply-invites")
     importer = subparsers.add_parser("import-sqlite")
     importer.add_argument("--source", type=Path, required=True)
     args = parser.parse_args()
     try:
         from dotenv import load_dotenv
         load_dotenv(args.env_file)
-        actions = {"apply": apply_schema, "apply-open-proposals": apply_open_schema, "apply-entry-workflow": apply_entry_schema,
+        actions = {"apply": apply_schema, "apply-open-proposals": apply_open_schema, "apply-entry-workflow": apply_entry_schema, "apply-invites": apply_invite_schema,
                    "apply-organizer-first": lambda: apply_entry_schema(MIGRATION.with_name("005_organizer_first.sql"), [("selection_state", "organizer_submitted")])}
         result = actions[args.command]() if args.command in actions else copy_sqlite(args.source)
         print(json.dumps(result, ensure_ascii=True))

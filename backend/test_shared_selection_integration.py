@@ -36,7 +36,33 @@ class SharedSelectionIntegration(localtests.SelectionTests):
         self.created_rooms = []
         self.addCleanup(self.clean_created_rooms)
         super().setUp()
-        self.created_rooms.append(int(self.base.split("/")[3]))
+
+    def join_participant(self, client, nickname):
+        room_path = self.base.removesuffix("/selection")
+        if not self.created_rooms:
+            self.created_rooms.append(int(room_path.split("/")[-1]))
+            response = self.host.post(room_path + "/invite")
+            self.assertEqual(response.status_code, 200)
+            self.invite = response.json()["token"]
+        self.assertEqual(client.post(room_path + "/members", json={"nickname": nickname, "invite_token": self.invite}).status_code, 201)
+
+    def test_invite_access_expiry_rotation_and_revocation(self):
+        path = self.base.removesuffix("/selection")
+        outsider = TestClient(selection.app)
+        self.addCleanup(outsider.close)
+        self.assertEqual(outsider.get(path).status_code, 401)
+        self.assertEqual(outsider.post(path + "/members", json={"nickname": "招待確認"}).status_code, 403)
+        self.assertEqual(self.clients[1].post(path + "/invite").status_code, 403)
+        with shared_rooms.connection() as con:
+            con.execute("UPDATE consultation_invites SET expires_at=0 WHERE room_id=%s", (self.created_rooms[0],))
+        self.assertEqual(outsider.post(path + "/members", json={"nickname": "招待確認", "invite_token": self.invite}).status_code, 403)
+        renewed = self.host.post(path + "/invite").json()["token"]
+        self.assertEqual(self.host.delete(path + "/invite").status_code, 204)
+        self.assertEqual(outsider.post(path + "/members", json={"nickname": "招待確認", "invite_token": renewed}).status_code, 403)
+        valid = self.host.post(path + "/invite").json()["token"]
+        self.assertEqual(outsider.post(path + "/members", json={"nickname": "招待確認", "invite_token": valid}).status_code, 201)
+        self.assertEqual(self.host.delete(path + "/invite").status_code, 204)
+        self.assertEqual(outsider.get(path).status_code, 200)
 
     def clean_created_rooms(self):
         # このテストで作成したIDだけを対象にする。既存ルームには触らない。
